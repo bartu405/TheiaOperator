@@ -1,0 +1,12 @@
+apiVersion: example.suleyman.io/v1alpha1
+kind: AppDefinition
+metadata:
+  name: sample-app-other
+  namespace: default
+spec:
+  image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
+  cpuRequest: "250m"
+  memoryRequest: "512Mi"
+  env:
+    - name: THEIA_CUSTOM_MESSAGE
+      value: "Hello from OTHER AppDefinition"

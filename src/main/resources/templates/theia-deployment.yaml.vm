@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${deploymentName}
+  namespace: ${namespace}
+  labels:
+    app: theia
+    session-name: ${sessionName}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: theia
+      session-name: ${sessionName}
+  template:
+    metadata:
+      labels:
+        app: theia
+        session-name: ${sessionName}
+    spec:
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: ${pvcName}
+      containers:
+        - name: theia
+          image: ${image}
+          ports:
+            - containerPort: ${port}
+          resources:
+            requests:
+              cpu: ${requestsCpu}
+              memory: ${requestsMemory}
+            limits:
+              cpu: ${limitsCpu}
+              memory: ${limitsMemory}
+          env:
+#foreach($env in $envs)
+              - name: $env.name
+                value: "$env.value"
+#end
+          volumeMounts:
+            - name: workspace
+              mountPath: ${mountPath}
+
+        - name: oauth-proxy
+          image: registry.k8s.io/pause:3.9

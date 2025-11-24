@@ -1,0 +1,12 @@
+apiVersion: example.suleyman.io/v1alpha1
+kind: Session
+metadata:
+  name: demo-session
+  namespace: default
+spec:
+  workspaceName: demo-ws
+  appDefinitionName: sample-app
+  user: "bartu"
+  envVars:
+    FAVORITE_COLOR: blue
+    THEIA_CUSTOM_MESSAGE: "Hello from Session"

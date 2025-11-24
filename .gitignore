@@ -1,0 +1,98 @@
+###############################
+# Gradle
+###############################
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Local Gradle properties
+gradle.properties
+*.gradle.kts~
+*.gradle~
+
+###############################
+# IntelliJ IDEA / JetBrains
+###############################
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# IDEA local workspace files
+.idea/**/shelf/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/vcs.xml
+.idea/**/gradle.xml
+.idea/**/libraries/
+
+###############################
+# Kotlin / Java
+###############################
+*.class
+*.log
+*.jar
+*.war
+*.ear
+
+# Kapt
+kaptGenerated/
+build/kapt/
+build/tmp/kapt3/
+
+###############################
+# Logs / temp files
+###############################
+*.log
+*.tmp
+*.swp
+*.swo
+hs_err_pid*
+replay_pid*
+
+###############################
+# OS / Editor files
+###############################
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VSCode
+.vscode/
+
+###############################
+# Operator-specific (optional)
+###############################
+
+# Kubernetes local files
+kubeconfig*
+*.kubeconfig
+k8s/*.yaml~
+*~backup.yaml
+*.backup
+
+# Operator output
+operator.log
+session-debug.yaml
+rendered-*.yaml
+
+###############################
+# Other common ignores
+###############################
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.orig
+*.rej

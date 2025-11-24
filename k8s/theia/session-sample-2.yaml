@@ -1,0 +1,8 @@
+apiVersion: example.suleyman.io/v1alpha1
+kind: Session
+metadata:
+  name: demo-session-2
+  namespace: default
+spec:
+  workspaceName: demo-ws
+  appDefinitionName: sample-app
