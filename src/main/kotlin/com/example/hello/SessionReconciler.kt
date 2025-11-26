@@ -7,26 +7,22 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
+import controllerOwnerRef
 import java.io.ByteArrayInputStream
 import org.slf4j.LoggerFactory
 
 
 @ControllerConfiguration(
     name = "session-controller",
-    finalizerName = SessionReconciler.FINALIZER
 )
 class SessionReconciler(
     private val client: KubernetesClient
-) : Reconciler<Session>, Cleaner<Session> {
+) : Reconciler<Session> {
 
     // Hostname used in Ingress + status.url.
     // For real environments you can change this per cluster / env.
     val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
 
-    companion object {
-        const val FINALIZER = "sessions.example.suleyman.io/finalizer"
-
-    }
 
     private val log = LoggerFactory.getLogger(SessionReconciler::class.java)
 
@@ -133,6 +129,22 @@ class SessionReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
+        // after workspace checks
+        val sessionMeta = resource.metadata
+        val existingRefs = sessionMeta.ownerReferences ?: emptyList()
+
+        val hasWsOwner = existingRefs.any { it.uid == workspace.metadata.uid }
+
+        if (!hasWsOwner) {
+            val newRefs = existingRefs.toMutableList()
+            newRefs.add(controllerOwnerRef(workspace))
+            sessionMeta.ownerReferences = newRefs
+
+            // patch Session metadata so the ownerRef is stored in the cluster
+            client.resource(resource).inNamespace(ns).patch()
+        }
+
+
         // --- 2.6) Consistency check: Workspace.appDefinitionName vs Session.appDefinitionName
 
         val workspaceAppDefName = workspace.spec?.appDefinitionName
@@ -200,7 +212,13 @@ class SessionReconciler(
 
         // Convert back to List<EnvVarSpec> for the template
         val mergedEnv: List<EnvVarSpec> =
-            mergedEnvByName.map { (name, value) -> EnvVarSpec(name = name, value = value) }
+            mergedEnvByName.map { (name, value) ->
+                EnvVarSpec().apply {
+                    this.name = name
+                    this.value = value
+                }
+            }
+
 
 
         val nonNullSessionName = sessionName
@@ -229,12 +247,13 @@ class SessionReconciler(
             envVarsFromConfigMaps,
             envVarsFromSecrets,
             port,
-            mountPath
+            mountPath,
+            owner = resource
         )
 
 
-        ensureTheiaService(ns, nonNullSessionName, port)
-        ensureTheiaIngress(ns, nonNullSessionName, port)
+        ensureTheiaService(ns, nonNullSessionName, port, owner = resource)
+        ensureTheiaIngress(ns, nonNullSessionName, port, owner = resource)
 
         // --- 4) Update Session status as "ready" with external-ish URL
         val status = ensureStatus(resource)
@@ -247,45 +266,6 @@ class SessionReconciler(
         return UpdateControl.patchStatus(resource)
     }
 
-
-
-
-    override fun cleanup(resource: Session, context: Context<Session>): DeleteControl {
-        val ns = resource.metadata?.namespace ?: "default"
-        val sessionName = resource.metadata?.name ?: return DeleteControl.defaultDelete()
-
-        val deploymentName = "theia-$sessionName"
-        val serviceName = "theia-$sessionName"
-        val ingressName = "theia-$sessionName"
-
-        log.info(
-            "Cleanup for Session {}/{}: deleting Deployment {}, Service {} and Ingress {}",
-            ns, sessionName, deploymentName, serviceName, ingressName
-        )
-
-        // Delete Deployment kubectl delete deployment theia-demo-session -n default
-        client.apps()
-            .deployments()
-            .inNamespace(ns)
-            .withName(deploymentName)
-            .delete()
-
-        // Delete Service kubectl delete svc theia-demo-session -n default
-        client.services()
-            .inNamespace(ns)
-            .withName(serviceName)
-            .delete()
-
-        // Delete Ingress kubectl delete ingress theia-demo-session -n default
-        client.network()
-            .v1()
-            .ingresses()
-            .inNamespace(ns)
-            .withName(ingressName)
-            .delete()
-
-        return DeleteControl.defaultDelete()
-    }
 
 
 
@@ -302,7 +282,8 @@ class SessionReconciler(
         envVarsFromConfigMaps: List<String>,
         envVarsFromSecrets: List<String>,
         port: Int,
-        mountPath: String
+        mountPath: String,
+        owner: Session
     )
     {
         val deploymentName = "theia-$sessionName"
@@ -343,6 +324,8 @@ class SessionReconciler(
 
         // kubectl apply -f theia-deployment.yaml
         resources.forEach { res ->
+            val meta = res.metadata
+            meta.ownerReferences = listOf(controllerOwnerRef(owner))
             client.resource(res).inNamespace(namespace).createOrReplace()
         }
 
@@ -354,7 +337,8 @@ class SessionReconciler(
     private fun ensureTheiaService(
         namespace: String,
         sessionName: String,
-        port: Int
+        port: Int,
+        owner: Session
     ) {
         val serviceName = "theia-$sessionName"
 
@@ -383,9 +367,8 @@ class SessionReconciler(
 
         // kubectl apply -f theia-service.yaml
         resources.forEach { res ->
-            client.resource(res)
-                .inNamespace(namespace)
-                .createOrReplace()
+            res.metadata.ownerReferences = listOf(controllerOwnerRef(owner))
+            client.resource(res).inNamespace(namespace).createOrReplace()
         }
 
         log.info("Ensured Service {}/{} from template", namespace, serviceName)
@@ -394,7 +377,8 @@ class SessionReconciler(
     private fun ensureTheiaIngress(
         namespace: String,
         sessionName: String,
-        port: Int
+        port: Int,
+        owner: Session
     ) {
         val ingressName = "theia-$sessionName"
         val serviceName = "theia-$sessionName"
@@ -420,9 +404,8 @@ class SessionReconciler(
 
         // kubectl apply -f theia-ingress.yaml
         resources.forEach { res ->
-            client.resource(res)
-                .inNamespace(namespace)
-                .createOrReplace()
+            res.metadata.ownerReferences = listOf(controllerOwnerRef(owner))
+            client.resource(res).inNamespace(namespace).createOrReplace()
         }
 
         log.info("Ensured Ingress {}/{} from template", namespace, ingressName)
@@ -435,6 +418,8 @@ class SessionReconciler(
         }
         return resource.status!!
     }
+
+
 
 
 }

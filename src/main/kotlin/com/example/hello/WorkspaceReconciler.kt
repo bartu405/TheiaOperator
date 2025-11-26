@@ -9,20 +9,17 @@ import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
 import io.javaoperatorsdk.operator.api.reconciler.DeleteControl
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
+import controllerOwnerRef
 import org.slf4j.LoggerFactory
 
 
 @ControllerConfiguration(
-    name = "workspace-controller",
-    finalizerName = WorkspaceReconciler.FINALIZER
+    name = "workspace-controller"
 )
 class WorkspaceReconciler(
     private val client: KubernetesClient
-) : Reconciler<Workspace>, Cleaner<Workspace> {
+) : Reconciler<Workspace>{
 
-    companion object {
-        const val FINALIZER = "workspaces.example.suleyman.io/finalizer"
-    }
 
     private val log = LoggerFactory.getLogger(WorkspaceReconciler::class.java)
 
@@ -32,52 +29,49 @@ class WorkspaceReconciler(
     ): UpdateControl<Workspace> {
         val name = resource.metadata?.name ?: "<no-name>"
         val ns = resource.metadata?.namespace ?: "<no-namespace>"
-
-
         log.info("Reconciling Workspace {}/{}", ns, name)
 
-        // 1) Ensure PVC exists
-        ensurePvc(resource)
+        // --- link Workspace -> AppDefinition (if specified) ---
+        val appDefName = resource.spec?.appDefinitionName
+        if (!appDefName.isNullOrBlank()) {
+            val appDef = client.resources(AppDefinition::class.java)
+                .inNamespace(ns)
+                .withName(appDefName)
+                .get()
 
-        // 2) Only set ready=true if status.ready is null (first creation)
-        if (resource.status == null) {
-            resource.status = WorkspaceStatus(ready = true, message = "Workspace created")
+            if (appDef != null) {
+                val wsMeta = resource.metadata
+                val existingRefs = wsMeta.ownerReferences ?: emptyList()
+                val alreadyOwned = existingRefs.any { it.uid == appDef.metadata.uid }
+
+                if (!alreadyOwned) {
+                    val newRefs = existingRefs.toMutableList()
+                    newRefs.add(controllerOwnerRef(appDef))
+                    wsMeta.ownerReferences = newRefs
+
+                    client.resource(resource).inNamespace(ns).patch()
+                }
+            } else {
+                log.warn("AppDefinition {}/{} not found for Workspace {}/{}", ns, appDefName, ns, name)
+                // optional: set status.message etc.
+            }
         }
 
+        // 1) Ensure PVC exists (it will be owned by this Workspace)
+        ensurePvc(resource)
+
+        // 2) Only set ready=true on first creation
+        if (resource.status == null) {
+            resource.status = WorkspaceStatus().apply {
+                ready = true
+                message = "Workspace created"
+            }
+        }
 
 
         return UpdateControl.patchStatus(resource)
     }
 
-    override fun cleanup(resource: Workspace, context: Context<Workspace>): DeleteControl {
-        val wsName = resource.metadata?.name ?: return DeleteControl.defaultDelete()
-        val ns = resource.metadata?.namespace ?: "default"
-
-        // Finds all Session CRs in the namespace, Delete any Sessions that reference this workspace
-        val sessions = client.resources(Session::class.java)
-            .inNamespace(ns)
-            .list()
-            .items
-            .filter { it.spec?.workspaceName == wsName }
-
-        sessions.forEach { session ->
-            log.info("Workspace {} is deleted → removing Session {}", wsName, session.metadata.name)
-            client.resource(session).delete()
-        }
-
-        // Now PVC cleanup logic
-        val pvcName = "workspace-$wsName"
-
-
-        log.info("Deleting PVC {}", pvcName)
-
-        client.persistentVolumeClaims()
-            .inNamespace(ns)
-            .withName(pvcName)
-            .delete()
-
-        return DeleteControl.defaultDelete()
-    }
 
 
 
@@ -87,19 +81,33 @@ class WorkspaceReconciler(
         val pvcName = "workspace-$wsName"
 
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
-
-        // 1) Check if PVC already exists
         val existing = pvcClient.withName(pvcName).get()
+
         if (existing != null) {
-            log.info("PVC {} already exists in namespace {}, skipping update", pvcName, ns)
+            val refs = existing.metadata.ownerReferences ?: emptyList()
+            val wsUid = ws.metadata?.uid
+            val hasWsOwner = refs.any { it.uid == wsUid }
+
+            if (!hasWsOwner && wsUid != null) {
+                existing.metadata.ownerReferences = refs + controllerOwnerRef(ws)
+                pvcClient.resource(existing).patch()
+                log.info(
+                    "Patched PVC {} in ns {} to add ownerReference to Workspace {}",
+                    pvcName, ns, wsName
+                )
+            } else {
+                log.info(
+                    "PVC {} already exists in namespace {} with correct ownerReferences, skipping",
+                    pvcName, ns
+                )
+            }
             return
         }
 
+        // create fresh PVC with ownerRef as before
         log.info("PVC {} not found in namespace {}, creating it", pvcName, ns)
 
-        // 2) Build PVC spec
         val size = ws.spec?.storageSize
-
         var pvcBuilder = PersistentVolumeClaimBuilder()
             .withNewMetadata()
             .withName(pvcName)
@@ -117,11 +125,10 @@ class WorkspaceReconciler(
         }
 
         val pvc = pvcBuilder.endSpec().build()
+        pvc.metadata.ownerReferences = listOf(controllerOwnerRef(ws))
 
-        // pvc.addOwnerReference(ws)
-
-        // 3) Create only (no createOrReplace)
         pvcClient.resource(pvc).create()
         log.info("Created PVC {}/{}", ns, pvcName)
     }
+
 }

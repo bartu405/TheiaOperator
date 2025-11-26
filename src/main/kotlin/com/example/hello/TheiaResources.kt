@@ -7,33 +7,29 @@ import io.fabric8.kubernetes.model.annotation.Version
 
 // ===== AppDefinition =====
 
-data class EnvVarSpec(
-    val name: String = "",
-    val value: String? = null
-)
+class EnvVarSpec {
+    var name: String = ""
+    var value: String? = null
+}
 
+class AppDefinitionSpec {
+    var image: String = ""
+    var port: Int = 3000
+    var uid: Int? = null
 
-data class AppDefinitionSpec(
-    val image: String,
-    val port: Int = 3000,
-    val uid: Int? = null,
+    var requestsCpu: String? = null
+    var requestsMemory: String? = null
+    var limitsCpu: String? = null
+    var limitsMemory: String? = null
 
-    val requestsCpu: String? = null,
-    val requestsMemory: String? = null,
-    val limitsCpu: String? = null,
-    val limitsMemory: String? = null,
+    var env: List<EnvVarSpec>? = null
+    var mountPath: String? = "/home/project"
+}
 
-    val env: List<EnvVarSpec>? = null,
-    val mountPath: String? = "/home/project"
-)
-
-
-
-
-data class AppDefinitionStatus(
-    var ready: Boolean = false,
+class AppDefinitionStatus {
+    var ready: Boolean = false
     var message: String? = null
-)
+}
 
 @Group("example.suleyman.io")
 @Version("v1alpha1")
@@ -44,19 +40,18 @@ class AppDefinition :
 
 // ===== Workspace =====
 
-data class WorkspaceSpec(
-    val owner: String? = null,
-    val appDefinitionName: String? = null,
-    val label: String? = null, // user field in theia cloud
-    val storageSize: String = "5Gi",
-    val storageClassName: String?,
+class WorkspaceSpec {
+    var owner: String? = null
+    var appDefinitionName: String? = null
+    var label: String? = null          // user field in theia cloud
+    var storageSize: String = "5Gi"
+    var storageClassName: String? = null
+}
 
-)
-
-data class WorkspaceStatus(
-    var ready: Boolean = false,
+class WorkspaceStatus {
+    var ready: Boolean = false
     var message: String? = null
-)
+}
 
 @Group("example.suleyman.io")
 @Version("v1alpha1")
@@ -67,21 +62,20 @@ class Workspace :
 
 // ===== Session =====
 
-data class SessionSpec(
-    val workspaceName: String? = null,
-    val appDefinitionName: String? = null,
-    val user: String? = null,
-    val envVars: Map<String, String>? = null,
-    val envVarsFromConfigMaps: List<String>? = null,
-    val envVarsFromSecrets: List<String>? = null
-)
+class SessionSpec {
+    var workspaceName: String? = null
+    var appDefinitionName: String? = null
+    var user: String? = null
+    var envVars: Map<String, String>? = null
+    var envVarsFromConfigMaps: List<String>? = null
+    var envVarsFromSecrets: List<String>? = null
+}
 
-
-data class SessionStatus(
-    var ready: Boolean = false,
-    var url: String? = null,
+class SessionStatus {
+    var ready: Boolean = false
+    var url: String? = null
     var message: String? = null
-)
+}
 
 @Group("example.suleyman.io")
 @Version("v1alpha1")
