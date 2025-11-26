@@ -67,12 +67,7 @@ class WorkspaceReconciler(
 
         // Now PVC cleanup logic
         val pvcName = "workspace-$wsName"
-        val retain = resource.spec?.retainOnDelete ?: false
 
-        if (retain) {
-            log.info("Workspace {}/{} retainOnDelete=true → PVC NOT deleted", ns, wsName)
-            return DeleteControl.defaultDelete()
-        }
 
         log.info("Deleting PVC {}", pvcName)
 
@@ -103,9 +98,9 @@ class WorkspaceReconciler(
         log.info("PVC {} not found in namespace {}, creating it", pvcName, ns)
 
         // 2) Build PVC spec
-        val size = ws.spec?.storageSize ?: "5Gi"
+        val size = ws.spec?.storageSize
 
-        val pvc = PersistentVolumeClaimBuilder()
+        var pvcBuilder = PersistentVolumeClaimBuilder()
             .withNewMetadata()
             .withName(pvcName)
             .addToLabels("app", "theia-workspace")
@@ -116,9 +111,14 @@ class WorkspaceReconciler(
             .withNewResources()
             .addToRequests("storage", Quantity(size))
             .endResources()
-            .withStorageClassName(ws.spec?.storageClassName ?: "hostpath")
-            .endSpec()
-            .build()
+
+        if (ws.spec?.storageClassName != null) {
+            pvcBuilder = pvcBuilder.withStorageClassName(ws.spec?.storageClassName)
+        }
+
+        val pvc = pvcBuilder.endSpec().build()
+
+        // pvc.addOwnerReference(ws)
 
         // 3) Create only (no createOrReplace)
         pvcClient.resource(pvc).create()

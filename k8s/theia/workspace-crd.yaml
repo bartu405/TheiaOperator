@@ -30,8 +30,6 @@ spec:
                   type: string
                 storageClassName:
                   type: string
-                retainOnDelete:
-                  type: boolean
             status:
               type: object
               properties:

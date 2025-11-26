@@ -63,6 +63,7 @@ class SessionReconciler(
         }
 
         // --- 1.5) Rule: only ONE Session per Workspace
+        // TODO: eski sessionu veya yeni sessionu silsek mi?????
         val otherSessions = client.resources(Session::class.java)
             .inNamespace(ns)
             .list()
@@ -161,12 +162,11 @@ class SessionReconciler(
 
         val appSpec = appDef.spec
 
-        val image = appSpec?.image
-            ?: "ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest"
+        val image = appSpec.image
 
 
 
-        val port = appSpec?.port ?: 3000
+        val port = appSpec.port
 
         // --- Requests
         val requestsCpu = appSpec?.requestsCpu ?: "250m"
@@ -263,20 +263,20 @@ class SessionReconciler(
             ns, sessionName, deploymentName, serviceName, ingressName
         )
 
-        // Delete Deployment
+        // Delete Deployment kubectl delete deployment theia-demo-session -n default
         client.apps()
             .deployments()
             .inNamespace(ns)
             .withName(deploymentName)
             .delete()
 
-        // Delete Service
+        // Delete Service kubectl delete svc theia-demo-session -n default
         client.services()
             .inNamespace(ns)
             .withName(serviceName)
             .delete()
 
-        // Delete Ingress
+        // Delete Ingress kubectl delete ingress theia-demo-session -n default
         client.network()
             .v1()
             .ingresses()
@@ -332,11 +332,8 @@ class SessionReconciler(
             )
         )
 
+
         log.info("DEBUG: rendered theia Deployment YAML:\n{}", yaml)
-
-
-
-
 
         // Convert YAML string into InputStream
         val inputStream = ByteArrayInputStream(yaml.toByteArray(Charsets.UTF_8))
@@ -344,7 +341,7 @@ class SessionReconciler(
         // Load YAML into Kubernetes resources using Fabric8
         val resources = client.load(inputStream).items()
 
-        // Apply each resource (just one Deployment for now)
+        // kubectl apply -f theia-deployment.yaml
         resources.forEach { res ->
             client.resource(res).inNamespace(namespace).createOrReplace()
         }
@@ -384,6 +381,7 @@ class SessionReconciler(
         val inputStream = ByteArrayInputStream(yaml.toByteArray(Charsets.UTF_8))
         val resources = client.load(inputStream).items()
 
+        // kubectl apply -f theia-service.yaml
         resources.forEach { res ->
             client.resource(res)
                 .inNamespace(namespace)
@@ -420,6 +418,7 @@ class SessionReconciler(
         val inputStream = ByteArrayInputStream(yaml.toByteArray(Charsets.UTF_8))
         val resources = client.load(inputStream).items()
 
+        // kubectl apply -f theia-ingress.yaml
         resources.forEach { res ->
             client.resource(res)
                 .inNamespace(namespace)

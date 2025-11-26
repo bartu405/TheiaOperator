@@ -9,4 +9,3 @@ spec:
   label: "Bartu demo workspace" # (just a human-friendly name)
   storageSize: "5Gi"
   storageClassName: "hostpath"
-  retainOnDelete: false

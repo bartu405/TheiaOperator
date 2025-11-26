@@ -14,8 +14,8 @@ data class EnvVarSpec(
 
 
 data class AppDefinitionSpec(
-    val image: String? = null,
-    val port: Int? = 3000,
+    val image: String,
+    val port: Int = 3000,
     val uid: Int? = null,
 
     val requestsCpu: String? = null,
@@ -48,9 +48,8 @@ data class WorkspaceSpec(
     val owner: String? = null,
     val appDefinitionName: String? = null,
     val label: String? = null, // user field in theia cloud
-    val storageSize: String? = "5Gi",
-    val storageClassName: String? = "hostpath",
-    val retainOnDelete: Boolean = false
+    val storageSize: String = "5Gi",
+    val storageClassName: String?,
 
 )
 
