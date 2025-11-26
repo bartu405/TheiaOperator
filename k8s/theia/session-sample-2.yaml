@@ -1,4 +1,4 @@
-apiVersion: example.suleyman.io/v1alpha1
+apiVersion: example.suleyman.io/v1
 kind: Session
 metadata:
   name: demo-session-2

@@ -7,55 +7,104 @@ spec:
   scope: Namespaced
   names:
     kind: AppDefinition
+    listKind: AppDefinitionList
     plural: appdefinitions
     singular: appdefinition
+    shortNames:
+      - appdef
+      - ad
   versions:
-    - name: v1alpha1
+    - name: v1      # your version name, but schema copied from v1beta10
       served: true
       storage: true
+      subresources:
+        status: {}
       schema:
         openAPIV3Schema:
           type: object
           properties:
             spec:
               type: object
+              x-kubernetes-validations:
+                - rule: "self.minInstances <= self.maxInstances"
+                  message: "minInstances should be less or equal than maxInstances."
               properties:
+                name:
+                  type: string
+                  pattern: "^[a-z0-9A-Z-_]+$"
                 image:
                   type: string
-                port:
-                  type: integer
-                  format: int32
+                imagePullPolicy:
+                  type: string
+                  enum: ["Always", "IfNotPresent", "Never"]
+                pullSecret:
+                  type: string
                 uid:
                   type: integer
-                  format: int32
-
-                requestsCpu:
+                port:
+                  type: integer
+                  minimum: 0
+                  maximum: 65535
+                ingressname:
                   type: string
+                ingressHostnamePrefixes:
+                  type: array
+                  items:
+                    type: string
+                minInstances:
+                  type: integer
+                maxInstances:
+                  type: integer
+                timeout:
+                  type: integer
                 requestsMemory:
                   type: string
-                limitsCpu:
+                requestsCpu:
                   type: string
                 limitsMemory:
                   type: string
+                limitsCpu:
+                  type: string
+                downlinkLimit:
+                  type: integer
+                uplinkLimit:
+                  type: integer
                 mountPath:
                   type: string
-
-                env:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      value:
-                        type: string
-
+                monitor:
+                  type: object
+                  properties:
+                    port:
+                      type: integer
+                    activityTracker:
+                      type: object
+                      properties:
+                        timeoutAfter:
+                          type: integer
+                        notifyAfter:
+                          type: integer
+                options:
+                  type: object
+                  additionalProperties:
+                    x-kubernetes-int-or-string: true
+              required:
+                - name
+                - image
+                - uid
+                - port
+                - ingressname
+                - minInstances
+                - maxInstances
+                - requestsCpu
+                - requestsMemory
+                - limitsMemory
+                - limitsCpu
             status:
               type: object
               properties:
-                ready:
-                  type: boolean
-                message:
+                operatorStatus:
                   type: string
-      subresources:
-        status: {}
+                operatorMessage:
+                  type: string
+          required:
+            - spec

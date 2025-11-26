@@ -1,18 +1,20 @@
-apiVersion: example.suleyman.io/v1alpha1
+apiVersion: example.suleyman.io/v1
 kind: AppDefinition
 metadata:
   name: sample-app
   namespace: default
 spec:
+  # required fields from the CRD
+  name: "sample-app"           # logical name of the app
+  uid: 1            # some unique ID string
+  port: 3000                   # Theia usually listens on 3000 in the container
+  ingressname: "sample-app"    # must match the field name in the error: ingressname
+  minInstances: 1
+  maxInstances: 1
+
+  # your existing fields
   image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
   requestsCpu: "250m"
   requestsMemory: "512Mi"
   limitsCpu: "250m"
   limitsMemory: "1Gi"
-
-  env:
-    - name: THEIA_CUSTOM_MESSAGE
-      value: "Hello from AppDefinition"
-    - name: WORKSPACE_OWNER
-      value: "bartu"
-

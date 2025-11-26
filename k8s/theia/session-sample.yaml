@@ -1,12 +1,25 @@
-apiVersion: example.suleyman.io/v1alpha1
+apiVersion: example.suleyman.io/v1
 kind: Session
 metadata:
-  name: demo-session
+  name: demo-session             # Kubernetes resource name
   namespace: default
 spec:
-  workspaceName: demo-ws
-  appDefinitionName: sample-app
-  user: "bartu"
+  name: demo-session             # Logical session name (required)
+  workspace: demo-ws             # Workspace reference (required)
+  appDefinition: sample-app      # AppDefinition (required)
+  user: bartu                    # User (required)
+
+  # Optional fields:
   envVars:
     FAVORITE_COLOR: blue
     THEIA_CUSTOM_MESSAGE: "Hello from Session"
+
+  # If you want to include these (optional):
+  # envVarsFromConfigMaps:
+  #   - my-config
+  #
+  # envVarsFromSecrets:
+  #   - my-secret
+  #
+  # options:
+  #   storageClassName: standard

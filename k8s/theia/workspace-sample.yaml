@@ -1,11 +1,14 @@
-apiVersion: example.suleyman.io/v1alpha1
+apiVersion: example.suleyman.io/v1
 kind: Workspace
 metadata:
   name: demo-ws
   namespace: default
 spec:
-  owner: "bartu"
-  appDefinitionName: "sample-app"
-  label: "Bartu demo workspace" # (just a human-friendly name)
-  storageSize: "5Gi"
-  storageClassName: "hostpath"
+  name: "demo-ws"
+  label: "Bartu demo workspace"
+  appDefinition: "sample-app"
+  user: "bartu"
+  storage: "5Gi"
+  options:
+    some-flag: "true"
+    max-idle-minutes: "60"

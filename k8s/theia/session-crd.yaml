@@ -7,12 +7,17 @@ spec:
   scope: Namespaced
   names:
     kind: Session
+    listKind: SessionList
     plural: sessions
     singular: session
+    shortNames:
+      - sess
   versions:
-    - name: v1alpha1
+    - name: v1
       served: true
       storage: true
+      subresources:
+        status: {}
       schema:
         openAPIV3Schema:
           type: object
@@ -20,32 +25,65 @@ spec:
             spec:
               type: object
               properties:
-                workspaceName:
+                # Logical session name (Theia-style)
+                name:
                   type: string
-                appDefinitionName:
+                  pattern: '^[a-z0-9A-Z-_]+$'
+
+                # Workspace this session belongs to
+                workspace:
                   type: string
+
+                # Cached from workspace (AppDefinition name)
+                appDefinition:
+                  type: string
+                  pattern: '^[a-z0-9A-Z-_]+$'
+
+                # Cached from workspace
                 user:
                   type: string
+
+                # Optional reference to some secret for the session
+                sessionSecret:
+                  type: string
+
+                # Arbitrary options, int-or-string just like Theia Cloud
+                options:
+                  type: object
+                  additionalProperties:
+                    x-kubernetes-int-or-string: true
+
+                # Extra env vars
                 envVars:
                   type: object
                   additionalProperties:
-                    type: string
+                    x-kubernetes-int-or-string: true
+
                 envVarsFromConfigMaps:
                   type: array
                   items:
                     type: string
+
                 envVarsFromSecrets:
                   type: array
                   items:
                     type: string
+              required:
+                - name
+                - user
+                - appDefinition
             status:
               type: object
               properties:
-                ready:
-                  type: boolean
+                operatorStatus:
+                  type: string
+                operatorMessage:
+                  type: string
                 url:
                   type: string
-                message:
+                error:
                   type: string
-      subresources:
-        status: {}
+                lastActivity:
+                  type: integer
+          required:
+            - spec

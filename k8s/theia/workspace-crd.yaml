@@ -7,12 +7,17 @@ spec:
   scope: Namespaced
   names:
     kind: Workspace
+    listKind: WorkspaceList
     plural: workspaces
     singular: workspace
+    shortNames:
+      - ws
   versions:
-    - name: v1alpha1
+    - name: v1
       served: true
       storage: true
+      subresources:
+        status: {}
       schema:
         openAPIV3Schema:
           type: object
@@ -20,22 +25,59 @@ spec:
             spec:
               type: object
               properties:
-                owner:
+                # Logical name of the workspace (Theia-style)
+                name:
                   type: string
-                appDefinitionName:
-                  type: string
+                  pattern: '^[a-z0-9A-Z-_]+$'
+
+                # Human readable label
                 label:
                   type: string
-                storageSize:
+
+                # Last app definition that ran on this workspace
+                appDefinition:
                   type: string
-                storageClassName:
+                  pattern: '^[a-z0-9A-Z-_]+$'
+
+                # User who created / owns the workspace
+                user:
                   type: string
+
+                # Storage size / class – modeled after theia.cloud,
+                # but extended a bit for your use case.
+                storage:
+                  type: string    # e.g. "5Gi"
+
+                # Arbitrary additional options, same pattern as theia.cloud
+                options:
+                  type: object
+                  additionalProperties:
+                    x-kubernetes-int-or-string: true
+              required:
+                - name
+                - user
             status:
               type: object
               properties:
-                ready:
-                  type: boolean
-                message:
+                operatorStatus:
                   type: string
-      subresources:
-        status: {}
+                operatorMessage:
+                  type: string
+                volumeClaim:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    message:
+                      type: string
+                volumeAttach:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    message:
+                      type: string
+                error:
+                  type: string
+          required:
+            - spec
