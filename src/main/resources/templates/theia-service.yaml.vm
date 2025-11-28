@@ -4,15 +4,21 @@ metadata:
   name: ${serviceName}
   namespace: ${namespace}
   labels:
-    app: theia
+    app: ${appLabel}
     session-name: ${sessionName}
 spec:
   type: ${serviceType}
   selector:
-    app: theia
+    app: ${appLabel}
     session-name: ${sessionName}
   ports:
     - name: http
       port: ${servicePort}
       targetPort: ${targetPort}
       protocol: TCP
+#if( $monitorPort )
+    - name: metrics
+      port: ${monitorPort}
+      targetPort: ${monitorPort}
+      protocol: TCP
+#end

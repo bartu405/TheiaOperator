@@ -161,7 +161,15 @@ class SessionReconciler(
             owner = resource
         )
 
-        ensureTheiaService(ns, nonNullSessionName, port, owner = resource)
+        ensureTheiaService(
+            ns,
+            nonNullSessionName,
+            port,
+            owner = resource,
+            monitorPort = null, // or some real metrics port
+            appLabel = "theia"
+        )
+
         ensureTheiaIngress(ns, nonNullSessionName, port, owner = resource)
 
         // --- 6) Status on success
@@ -224,9 +232,18 @@ class SessionReconciler(
                 "envVarsFromConfigMaps" to envVarsFromConfigMaps,
                 "envVarsFromSecrets" to envVarsFromSecrets,
                 "port" to port,
-                "mountPath" to mountPath
+                "mountPath" to mountPath,
+
+                // new:
+                "fsGroupUid" to 1000,
+                "runAsUid" to 101,
+                "oauth2ProxyImage" to "quay.io/oauth2-proxy/oauth2-proxy:v7.6.0",
+                "oauth2ProxyConfigMapName" to "theia-oauth2-proxy-config",
+                "oauth2TemplatesConfigMapName" to "oauth2-templates",
+                "oauth2EmailsConfigMapName" to "theia-oauth2-emails"
             )
         )
+
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
@@ -239,7 +256,9 @@ class SessionReconciler(
         namespace: String,
         sessionName: String,
         port: Int,
-        owner: Session
+        owner: Session,
+        monitorPort: Int? = null,
+        appLabel: String = "theia"
     ) {
         val yaml = TemplateRenderer.render(
             "templates/theia-service.yaml.vm",
@@ -249,7 +268,9 @@ class SessionReconciler(
                 "sessionName" to sessionName,
                 "serviceType" to "ClusterIP",
                 "servicePort" to port,
-                "targetPort" to port
+                "targetPort" to port,
+                "monitorPort" to monitorPort,
+                "appLabel" to appLabel
             )
         )
 
@@ -258,7 +279,11 @@ class SessionReconciler(
             r.metadata.ownerReferences = listOf(controllerOwnerRef(owner))
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
+
+        log.info("Rendered Service YAML:\n{}", yaml)
+
     }
+
 
     private fun ensureTheiaIngress(
         namespace: String,
