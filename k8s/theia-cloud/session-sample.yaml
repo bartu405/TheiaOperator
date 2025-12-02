@@ -1,0 +1,18 @@
+apiVersion: theia.cloud/v1beta8
+kind: Session
+metadata:
+  name: my-session
+  namespace: theia-cloud
+  labels:
+    session: my-first-session
+spec:
+  # required fields
+  name: my-session
+  user: test-user
+  appDefinition: my-theia-application
+
+  # optional but useful: bind to our workspace
+  workspace: my-workspace
+
+  # optional: extra options (empty for now)
+  options: {}

@@ -1,0 +1,18 @@
+apiVersion: theia.cloud/v1beta5
+kind: Workspace
+metadata:
+  name: my-workspace
+  namespace: theia-cloud
+spec:
+  # required fields
+  name: my-workspace
+  user: test-user
+
+  # optional but important
+  appDefinition: my-theia-application
+
+  # optional - how much storage for the workspace PVC
+  storage: 1Gi
+
+  # optional - arbitrary label
+  label: "my-first-workspace"

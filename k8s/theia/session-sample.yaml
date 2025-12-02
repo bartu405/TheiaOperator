@@ -15,11 +15,7 @@ spec:
     THEIA_CUSTOM_MESSAGE: "Hello from Session"
 
   # If you want to include these (optional):
-  # envVarsFromConfigMaps:
-  #   - my-config
-  #
-  # envVarsFromSecrets:
-  #   - my-secret
-  #
-  # options:
-  #   storageClassName: standard
+  envVarsFromConfigMaps:
+      - demo-env-cm
+  envVarsFromSecrets:
+      - demo-env-secret

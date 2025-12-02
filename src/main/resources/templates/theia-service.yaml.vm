@@ -1,3 +1,4 @@
+# FILE: theia-service.yaml.vm
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,13 +13,13 @@ spec:
     app: ${appLabel}
     session-name: ${sessionName}
   ports:
-    - name: http
-      port: ${servicePort}
-      targetPort: ${targetPort}
-      protocol: TCP
+  - name: http
+    port: ${servicePort}
+    targetPort: ${targetPort}
+    protocol: TCP
 #if( $monitorPort )
-    - name: metrics
-      port: ${monitorPort}
-      targetPort: ${monitorPort}
-      protocol: TCP
+  - name: metrics
+    port: ${monitorPort}
+    targetPort: ${monitorPort}
+    protocol: TCP
 #end

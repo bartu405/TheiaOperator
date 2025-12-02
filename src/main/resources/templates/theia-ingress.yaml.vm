@@ -1,3 +1,4 @@
+# FILE: theia-ingress.yaml.vm
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

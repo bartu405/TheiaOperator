@@ -122,12 +122,39 @@ class SessionReconciler(
             )
         }
 
-        // --- 3) Env from Session only
+        // --- 3) Env: system THEIACLOUD_* + user envVars
+
         val sessionEnvMap = spec.envVars ?: emptyMap()
-        val mergedEnv: List<EnvVar> =
-            sessionEnvMap.map { (name, value) ->
-                EnvVar(name, value.toString(), null)
+
+        // Values derived from AppDefinition / Session / Ingress
+        val appId = appSpec.uid?.toString() ?: nonNullAppDefName
+        val serviceName = "theia-$nonNullSessionName"
+        val serviceUrl = "http://$serviceName:$port"
+        val sessionUrl = "http://$ingressHost/s/$nonNullSessionName/"
+        val sessionUid = resource.metadata?.uid ?: ""
+
+        // Start with system env vars (THEIACLOUD_*)
+        val mergedEnv = mutableListOf<EnvVar>()
+
+        mergedEnv += EnvVar("THEIACLOUD_APP_ID", appId, null)
+        mergedEnv += EnvVar("THEIACLOUD_SERVICE_URL", serviceUrl, null)
+        mergedEnv += EnvVar("THEIACLOUD_SESSION_UID", sessionUid, null)
+        mergedEnv += EnvVar("THEIACLOUD_SESSION_NAME", nonNullSessionName, null)
+        mergedEnv += EnvVar("THEIACLOUD_SESSION_USER", user, null)
+        mergedEnv += EnvVar("THEIACLOUD_SESSION_URL", sessionUrl, null)
+
+            // Now add user-defined envVars from Session.spec.envVars,
+            // but don't let them override THEIACLOUD_* keys
+        sessionEnvMap.forEach { (name, value) ->
+            if (!name.startsWith("THEIACLOUD_")) {
+                mergedEnv += EnvVar(name, value.toString(), null)
+            } else {
+                log.warn(
+                    "Ignoring user env var {} on Session {}/{} because it conflicts with system THEIACLOUD_* variables",
+                    name, ns, nonNullSessionName
+                )
             }
+        }
 
         log.info(
             "Merged env for Session {}/{} -> {}",
@@ -135,6 +162,8 @@ class SessionReconciler(
             nonNullSessionName,
             mergedEnv.joinToString { "${it.name}=${it.value}" }
         )
+
+
 
         // --- 4) Resources from AppDefinition
         val requestsCpu = appSpec.requestsCpu ?: "250m"

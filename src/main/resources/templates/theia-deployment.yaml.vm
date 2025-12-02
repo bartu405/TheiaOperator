@@ -1,3 +1,4 @@
+# FILE: theia-deployment.yaml.vm
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,6 +19,9 @@ spec:
         app: theia
         session-name: ${sessionName}
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: ${fsGroupUid}
       volumes:
         - name: workspace
           persistentVolumeClaim:
@@ -25,8 +29,10 @@ spec:
       containers:
         - name: theia
           image: ${image}
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: ${port}
+              name: http
           resources:
             requests:
               cpu: ${requestsCpu}
@@ -36,12 +42,24 @@ spec:
               memory: ${limitsMemory}
           env:
 #foreach($env in $envs)
-              - name: $env.name
-                value: "$env.value"
+            - name: $env.name
+              value: "$env.value"
+#end
+          # New: pull envs from ConfigMaps / Secrets listed in Session spec
+#if( $envVarsFromConfigMaps || $envVarsFromSecrets )
+          envFrom:
+#foreach($cm in $envVarsFromConfigMaps)
+              - configMapRef:
+                  name: $cm
+#end
+#foreach($sec in $envVarsFromSecrets)
+              - secretRef:
+                  name: $sec
+#end
 #end
           volumeMounts:
             - name: workspace
               mountPath: ${mountPath}
-
-        - name: oauth-proxy
-          image: registry.k8s.io/pause:3.9
+          securityContext:
+            runAsUser: ${runAsUid}
+            runAsGroup: ${runAsUid}
