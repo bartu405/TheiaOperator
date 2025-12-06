@@ -1,4 +1,4 @@
-# FILE: theia-deployment.yaml.vm
+## FILE: templates/theia-deployment.yaml.vm
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,21 +18,43 @@ spec:
       labels:
         app: theia
         session-name: ${sessionName}
+        theia-cloud.io/app-definition: ${appDefinitionName}
+        theia-cloud.io/session: ${sessionName}
+        theia-cloud.io/user: ${user}
+        theia-cloud.io/session-uid: ${sessionUid}
+    annotations:
+#if( $downlinkLimit )
+        kubernetes.io/ingress-bandwidth: "${downlinkLimit}k"
+#end
+#if( $uplinkLimit )
+        kubernetes.io/egress-bandwidth: "${uplinkLimit}k"
+#end
     spec:
       automountServiceAccountToken: false
       securityContext:
         fsGroup: ${fsGroupUid}
+#if( $pullSecret )
+      imagePullSecrets:
+        - name: ${pullSecret}
+#end
       volumes:
+        # Workspace data (PVC) – this is your addition
         - name: workspace
           persistentVolumeClaim:
             claimName: ${pvcName}
+
       containers:
+        # --- Main Theia application container ---
         - name: theia
           image: ${image}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: ${imagePullPolicy}
           ports:
-            - containerPort: ${port}
-              name: http
+          - containerPort: ${port}
+            name: application
+#if( $monitorPort )
+          - containerPort: ${monitorPort}
+            name: monitor
+#end
           resources:
             requests:
               cpu: ${requestsCpu}
@@ -42,10 +64,10 @@ spec:
               memory: ${limitsMemory}
           env:
 #foreach($env in $envs)
-            - name: $env.name
-              value: "$env.value"
+              - name: $env.name
+                value: "$env.value"
 #end
-          # New: pull envs from ConfigMaps / Secrets listed in Session spec
+          # pull envs from configmaps/secrets defined in Session spec
 #if( $envVarsFromConfigMaps || $envVarsFromSecrets )
           envFrom:
 #foreach($cm in $envVarsFromConfigMaps)

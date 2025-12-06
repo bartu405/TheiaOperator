@@ -1,3 +1,4 @@
+// File: AppDefinitionReconciler.kt
 package com.example.hello
 
 import io.fabric8.kubernetes.client.KubernetesClient
@@ -72,7 +73,7 @@ class AppDefinitionReconciler(
         }
 
         // If we reach here, spec looks good from operator POV
-        status.operatorStatus = "Ready"
+        status.operatorStatus = "HANDLED"
         status.operatorMessage = "AppDefinition is valid"
 
         return UpdateControl.patchStatus(resource)

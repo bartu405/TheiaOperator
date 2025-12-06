@@ -1,8 +1,11 @@
 apiVersion: example.suleyman.io/v1
 kind: Session
 metadata:
-  name: demo-session-2
+  name: demo-session-uid
   namespace: default
 spec:
-  workspaceName: demo-ws
-  appDefinitionName: sample-app
+  name: demo-session-uid
+  workspace: demo-ws
+  appDefinition: sample-app
+  user: bartu
+  sessionSecret: super-secret-456

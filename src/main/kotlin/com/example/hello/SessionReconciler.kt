@@ -1,3 +1,4 @@
+// File: SessionReconciler.kt
 package com.example.hello
 
 import io.fabric8.kubernetes.api.model.EnvVar
@@ -17,6 +18,12 @@ class SessionReconciler(
 
     private val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
     private val log = LoggerFactory.getLogger(SessionReconciler::class.java)
+
+    private val keycloakUrl: String? = System.getenv("THEIACLOUD_KEYCLOAK_URL")
+    private val keycloakRealm: String? = System.getenv("THEIACLOUD_KEYCLOAK_REALM")
+    private val keycloakClientId: String? = System.getenv("THEIACLOUD_KEYCLOAK_CLIENT_ID")
+
+
 
     override fun reconcile(resource: Session, context: Context<Session>): UpdateControl<Session> {
         val ns = resource.metadata?.namespace ?: "default"
@@ -38,6 +45,8 @@ class SessionReconciler(
         val user = spec.user
         val envVarsFromConfigMaps = spec.envVarsFromConfigMaps ?: emptyList()
         val envVarsFromSecrets = spec.envVarsFromSecrets ?: emptyList()
+        val sessionSecret = spec.sessionSecret
+
 
         if (sessionName.isNullOrBlank() ||
             workspaceName.isNullOrBlank() ||
@@ -93,6 +102,15 @@ class SessionReconciler(
         val port = appSpec.port
             ?: return failStatus(resource, "AppDefinition '$nonNullAppDefName' missing port")
 
+        // Optional fields from AppDefinition
+        val imagePullPolicy = appSpec.imagePullPolicy ?: "IfNotPresent"
+        val pullSecret = appSpec.pullSecret
+
+
+        val downlinkLimit = appSpec.downlinkLimit   // Int?
+        val uplinkLimit = appSpec.uplinkLimit       // Int?
+
+
         // --- 2.5) Workspace existence
         val workspace = client.resources(Workspace::class.java)
             .inNamespace(ns)
@@ -130,8 +148,13 @@ class SessionReconciler(
         val appId = appSpec.uid?.toString() ?: nonNullAppDefName
         val serviceName = "theia-$nonNullSessionName"
         val serviceUrl = "http://$serviceName:$port"
-        val sessionUrl = "http://$ingressHost/s/$nonNullSessionName/"
         val sessionUid = resource.metadata?.uid ?: ""
+        // Decide what we use in the external URL path.
+        // Henkan-style: use the session UID, fallback to name if UID is missing.
+        val pathId = if (!sessionUid.isNullOrBlank()) sessionUid else nonNullSessionName
+
+        val sessionUrl = "http://$ingressHost/$pathId/"
+
 
         // Start with system env vars (THEIACLOUD_*)
         val mergedEnv = mutableListOf<EnvVar>()
@@ -142,8 +165,22 @@ class SessionReconciler(
         mergedEnv += EnvVar("THEIACLOUD_SESSION_NAME", nonNullSessionName, null)
         mergedEnv += EnvVar("THEIACLOUD_SESSION_USER", user, null)
         mergedEnv += EnvVar("THEIACLOUD_SESSION_URL", sessionUrl, null)
+        if (!sessionSecret.isNullOrBlank()) {
+            mergedEnv += EnvVar("THEIACLOUD_SESSION_SECRET", sessionSecret, null)
+        }
+        // NEW – only if present as operator env
+        keycloakUrl?.let {
+            mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_URL", it, null)
+        }
+        keycloakRealm?.let {
+            mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_REALM", it, null)
+        }
+        keycloakClientId?.let {
+            mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_CLIENT_ID", it, null)
+        }
 
-            // Now add user-defined envVars from Session.spec.envVars,
+
+        // Now add user-defined envVars from Session.spec.envVars,
             // but don't let them override THEIACLOUD_* keys
         sessionEnvMap.forEach { (name, value) ->
             if (!name.startsWith("THEIACLOUD_")) {
@@ -172,12 +209,23 @@ class SessionReconciler(
         val limitsMemory = appSpec.limitsMemory ?: requestsMemory
         val mountPath = appSpec.mountPath ?: "/home/project"
 
+        // --- 4.5) Security context UIDs from AppDefinition (or default to 101)
+        val defaultUid = 101
+        val runAsUid = appSpec.uid ?: defaultUid
+        val fsGroupUid = appSpec.uid ?: defaultUid
+
+
+
+
+
         // --- 5) Ensure Deployment + Service + Ingress
         ensureTheiaDeployment(
             ns,
             nonNullSessionName,
             nonNullWorkspaceName,
             image,
+            imagePullPolicy = imagePullPolicy,   // NEW
+            pullSecret = pullSecret,
             requestsCpu,
             requestsMemory,
             limitsCpu,
@@ -187,6 +235,13 @@ class SessionReconciler(
             envVarsFromSecrets,
             port,
             mountPath,
+            fsGroupUid,
+            runAsUid,
+            downlinkLimit,
+            uplinkLimit,
+            appDefinitionName = nonNullAppDefName,
+            user = user,
+            sessionUid = sessionUid,
             owner = resource
         )
 
@@ -199,14 +254,21 @@ class SessionReconciler(
             appLabel = "theia"
         )
 
-        ensureTheiaIngress(ns, nonNullSessionName, port, owner = resource)
+        ensureTheiaIngress(
+            ns,
+            nonNullSessionName,
+            port,
+            sessionUid = sessionUid,
+            owner = resource
+        )
+
 
         // --- 6) Status on success
         val nowSeconds = System.currentTimeMillis() / 1000
 
-        status.operatorStatus = "Ready"
+        status.operatorStatus = "HANDLED"
         status.operatorMessage = "Session is running"
-        status.url = "http://$ingressHost/s/$nonNullSessionName/"
+        status.url = "http://$ingressHost/$pathId/"
         status.error = null
         status.lastActivity = nowSeconds
 
@@ -228,6 +290,8 @@ class SessionReconciler(
         sessionName: String,
         workspaceName: String,
         image: String,
+        imagePullPolicy: String,      // NEW
+        pullSecret: String?,
         requestsCpu: String,
         requestsMemory: String,
         limitsCpu: String,
@@ -237,12 +301,21 @@ class SessionReconciler(
         envVarsFromSecrets: List<String>,
         port: Int,
         mountPath: String,
+        fsGroupUid: Int,
+        runAsUid: Int,
+        downlinkLimit: Int?,
+        uplinkLimit: Int?,
+        appDefinitionName: String,
+        user: String,
+        sessionUid: String,
         owner: Session
     ) {
         val deploymentName = "theia-$sessionName"
         val pvcName = "workspace-$workspaceName"
 
         log.info("Ensuring Deployment {} in ns {} using PVC {}", deploymentName, namespace, pvcName)
+
+
 
         val yaml = TemplateRenderer.render(
             "templates/theia-deployment.yaml.vm",
@@ -253,6 +326,8 @@ class SessionReconciler(
                 "workspaceName" to workspaceName,
                 "pvcName" to pvcName,
                 "image" to image,
+                "imagePullPolicy" to imagePullPolicy,   // NEW
+                "pullSecret" to pullSecret,
                 "requestsCpu" to requestsCpu,
                 "requestsMemory" to requestsMemory,
                 "limitsCpu" to limitsCpu,
@@ -262,14 +337,20 @@ class SessionReconciler(
                 "envVarsFromSecrets" to envVarsFromSecrets,
                 "port" to port,
                 "mountPath" to mountPath,
-
-                // new:
-                "fsGroupUid" to 1000,
-                "runAsUid" to 101,
+                "fsGroupUid" to fsGroupUid,
+                "runAsUid" to runAsUid,
                 "oauth2ProxyImage" to "quay.io/oauth2-proxy/oauth2-proxy:v7.6.0",
                 "oauth2ProxyConfigMapName" to "theia-oauth2-proxy-config",
                 "oauth2TemplatesConfigMapName" to "oauth2-templates",
-                "oauth2EmailsConfigMapName" to "theia-oauth2-emails"
+                "oauth2EmailsConfigMapName" to "theia-oauth2-emails",
+                "downlinkLimit" to downlinkLimit,
+                "uplinkLimit" to uplinkLimit,
+                "downlinkLimit" to downlinkLimit,
+                "uplinkLimit" to uplinkLimit,
+                "appDefinitionName" to appDefinitionName,
+                "user" to user,
+                "sessionUid" to sessionUid
+
             )
         )
 
@@ -318,19 +399,23 @@ class SessionReconciler(
         namespace: String,
         sessionName: String,
         port: Int,
+        sessionUid: String,
         owner: Session
-    ) {
+    )
+    {
         val yaml = TemplateRenderer.render(
             "templates/theia-ingress.yaml.vm",
             mapOf(
                 "namespace" to namespace,
                 "ingressName" to "theia-$sessionName",
                 "sessionName" to sessionName,
+                "sessionUid" to sessionUid,      // NEW
                 "serviceName" to "theia-$sessionName",
                 "servicePort" to port,
                 "host" to ingressHost
             )
         )
+
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->

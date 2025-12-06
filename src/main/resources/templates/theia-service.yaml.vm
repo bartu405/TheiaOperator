@@ -1,4 +1,4 @@
-# FILE: theia-service.yaml.vm
+## FILE: templates/theia-service.yaml.vm
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,11 +15,12 @@ spec:
   ports:
   - name: http
     port: ${servicePort}
-    targetPort: ${targetPort}
     protocol: TCP
+    # Theia sends traffic to the oauth2-proxy "web" port
+    targetPort: web
 #if( $monitorPort )
   - name: metrics
     port: ${monitorPort}
-    targetPort: ${monitorPort}
     protocol: TCP
+    targetPort: ${monitorPort}
 #end

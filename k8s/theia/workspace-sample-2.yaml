@@ -5,8 +5,8 @@ metadata:
   namespace: default
 spec:
   owner: "bartu"
-  appDefinitionName: "sample-app"         # NEW
-  label: "Bartu demo workspace"           # NEW (just a human-friendly name)
+  appDefinitionName: "sample-app"
+  label: "Bartu demo workspace"
   storageSize: "5Gi"
   storageClassName: "hostpath"
   retainOnDelete: false

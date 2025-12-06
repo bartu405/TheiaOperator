@@ -1,0 +1,21 @@
+apiVersion: example.suleyman.io/v1
+kind: Session
+metadata:
+  name: demo-session-henkan-env
+  namespace: default
+spec:
+  name: demo-session-henkan-env
+  user: bartu
+  workspace: demo-ws
+  appDefinition: sample-app
+  sessionSecret: super-secret-999
+  envVars:
+    COMMIT_GENAI_ENDPOINT: "https://henkan-genai.example/webhook/123"
+    EMAIL: "bartu@example.com"
+    GIT_AUTHOR_NAME: "bartu"
+    GIT_SSL_NO_VERIFY: "true"
+    HENKAN_GIT_EMAIL: "bartu@example.com"
+    HENKAN_GIT_USER: "bartu"
+    HENKAN_META_API_URL: "http://henkan-metaapi.henkan-metaapi"
+    HENKAN_PROJECT_GIT_URL: "https://github.com/GlobalMaksimum/henkan-etl-flow-project.git"
+    HENKAN_PROJECT_NAME: "busra"

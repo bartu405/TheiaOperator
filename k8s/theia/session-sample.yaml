@@ -3,11 +3,18 @@ kind: Session
 metadata:
   name: demo-session             # Kubernetes resource name
   namespace: default
+  labels:
+    app: theia
+    session-name: demo-session
+  annotations:
+    kubernetes.io/ingress-bandwidth: "2000k"
+    kubernetes.io/egress-bandwidth: "1000k"
 spec:
   name: demo-session             # Logical session name (required)
   workspace: demo-ws             # Workspace reference (required)
   appDefinition: sample-app      # AppDefinition (required)
   user: bartu                    # User (required)
+  sessionSecret: super-secret-123
 
   # Optional fields:
   envVars:

@@ -1,3 +1,4 @@
+// File: WorkspaceReconciler.kt
 package com.example.hello
 
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder
@@ -92,7 +93,7 @@ class WorkspaceReconciler(
 
         // 2) Set high-level operator status
         status.error = null
-        status.operatorStatus = "Ready"
+        status.operatorStatus = "HANDLED"
         status.operatorMessage = "Workspace reconciled successfully"
 
         return UpdateControl.patchStatus(resource)
@@ -161,6 +162,7 @@ class WorkspaceReconciler(
             .withName(pvcName)
             .addToLabels("app", "theia-workspace")
             .addToLabels("workspace-name", wsName)
+            .addToLabels("theia-cloud.io/workspace-name", wsName)
             .endMetadata()
             .withNewSpec()
             .withAccessModes("ReadWriteOnce")
