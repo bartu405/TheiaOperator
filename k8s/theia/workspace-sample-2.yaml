@@ -1,12 +1,11 @@
 apiVersion: example.suleyman.io/v1
 kind: Workspace
 metadata:
-  name: demo-ws
+  name: demo-ws-2
   namespace: default
 spec:
-  owner: "bartu"
-  appDefinitionName: "sample-app"
-  label: "Bartu demo workspace"
-  storageSize: "5Gi"
-  storageClassName: "hostpath"
-  retainOnDelete: false
+  name: demo-ws-2
+  label: Bartu second workspace
+  appDefinition: sample-app
+  storage: 5Gi
+  user: bartu

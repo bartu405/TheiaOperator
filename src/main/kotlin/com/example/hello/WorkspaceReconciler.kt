@@ -54,24 +54,41 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-        // --- Henkan-style labels on Workspace CR itself ---
-        // We derive:
-        //   app.henkan.io/henkanProjectName  <- spec.label OR spec.options["henkanProjectName"]
-        //   app.henkan.io/workspaceName      <- spec.name
-        //   app.henkan.io/workspaceUser      <- spec.user
+// --- Henkan-style labels on Workspace CR itself ---
+// We derive:
+//   app.henkan.io/henkanProjectName  <- slug(spec.label OR spec.options["henkanProjectName"])
+//   app.henkan.io/workspaceName      <- slug(spec.name)
+//   app.henkan.io/workspaceUser      <- slug(spec.user)
         val meta = resource.metadata!!
         val labels = (meta.labels ?: mutableMapOf()).toMutableMap()
 
-        val workspaceName = spec.name!!
-        val workspaceUser = spec.user!!
-        // Prefer spec.label (like in lab: label: busra), but allow override via options["henkanProjectName"]
-        val projectName = spec.label ?: spec.options?.get("henkanProjectName")?.toString()
+// raw values from spec
+        val projectNameRaw = spec.label ?: spec.options?.get("henkanProjectName")?.toString()
+        val workspaceNameRaw = spec.name!!
+        val workspaceUserRaw = spec.user!!
 
-        labels["app.henkan.io/workspaceName"] = workspaceName
-        labels["app.henkan.io/workspaceUser"] = workspaceUser
-        if (!projectName.isNullOrBlank()) {
-            labels["app.henkan.io/henkanProjectName"] = projectName
+// turn them into valid label values
+        val projectNameLabel = toLabelValue(projectNameRaw)
+        val workspaceNameLabel = toLabelValue(workspaceNameRaw)
+        val workspaceUserLabel = toLabelValue(workspaceUserRaw)
+
+        if (!workspaceNameLabel.isNullOrBlank()) {
+            labels["app.henkan.io/workspaceName"] = workspaceNameLabel
         }
+        if (!workspaceUserLabel.isNullOrBlank()) {
+            labels["app.henkan.io/workspaceUser"] = workspaceUserLabel
+        }
+        if (!projectNameLabel.isNullOrBlank()) {
+            labels["app.henkan.io/henkanProjectName"] = projectNameLabel
+        }
+
+        meta.labels = labels
+        client.resource(resource).inNamespace(ns).patch()
+        log.info(
+            "Workspace {}/{} labeled with Henkan labels: {}",
+            ns, name, labels.filterKeys { it.startsWith("app.henkan.io/") }
+        )
+
 
         meta.labels = labels
         client.resource(resource).inNamespace(ns).patch()
@@ -124,6 +141,23 @@ class WorkspaceReconciler(
         status.operatorMessage = "Workspace reconciled successfully"
 
         return UpdateControl.patchStatus(resource)
+    }
+
+    private fun toLabelValue(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+
+        // trim & lowercase
+        val trimmed = raw.trim().lowercase()
+
+        // replace any invalid char with '-'
+        val mapped = trimmed.map { ch ->
+            if (ch.isLetterOrDigit() || ch == '-' || ch == '_' || ch == '.') ch else '-'
+        }.joinToString("")
+
+        // remove leading/trailing non-alphanumeric (could be -, _ or .)
+        val cleaned = mapped.trim('-', '_', '.')
+
+        return if (cleaned.isBlank()) null else cleaned
     }
 
     /**

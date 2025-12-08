@@ -18,6 +18,10 @@ class SessionReconciler(
 
     private val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
     private val log = LoggerFactory.getLogger(SessionReconciler::class.java)
+    // Optional limit like Henkan's --sessionsPerUser
+    private val sessionsPerUser: Int? = System.getenv("SESSIONS_PER_USER")?.toIntOrNull()
+
+
 
     private val keycloakUrl: String? = System.getenv("THEIACLOUD_KEYCLOAK_URL")
     private val keycloakRealm: String? = System.getenv("THEIACLOUD_KEYCLOAK_REALM")
@@ -86,6 +90,33 @@ class SessionReconciler(
                 "Workspace '$nonNullWorkspaceName' already has active session '${existing.spec?.name ?: existing.metadata?.name}'"
             )
         }
+
+        // --- 1.6) Optional: max sessions per user (SESSIONS_PER_USER)
+        val sessionsPerUser = System.getenv("SESSIONS_PER_USER")?.toIntOrNull()
+
+        if (sessionsPerUser != null && sessionsPerUser > 0) {
+            val allUserSessions = client.resources(Session::class.java)
+                .inNamespace(ns)
+                .list()
+                .items
+                // same user
+                .filter { it.spec?.user == user }
+                // ignore *this* Session object while reconciling
+                .filter { it.metadata?.uid != resource.metadata?.uid }
+                // count only active ones (HANDLED)
+                .filter { it.status?.operatorStatus == "HANDLED" }
+
+            val activeCount = allUserSessions.size
+
+            if (activeCount >= sessionsPerUser) {
+                return failStatus(
+                    resource,
+                    "User '$user' already has $activeCount active sessions, which meets or exceeds limit $sessionsPerUser"
+                )
+            }
+        }
+
+
 
         // --- 2) Load AppDefinition
         val appDef = client.resources(AppDefinition::class.java)
@@ -171,13 +202,15 @@ class SessionReconciler(
         val appId = appSpec.uid?.toString() ?: nonNullAppDefName
         val serviceName = "theia-$nonNullSessionName"
         val serviceUrl = "http://$serviceName:$port"
+
+        // Use the Kubernetes UID of the Session as the Henkan-style path segment
         val sessionUid = resource.metadata?.uid ?: ""
-        // Decide what we use in the external URL path.
-        // Henkan-style: use the session UID, fallback to name if UID is missing.
-        val pathId = if (!sessionUid.isNullOrBlank()) sessionUid else nonNullSessionName
 
-        val sessionUrl = "http://$ingressHost/$pathId/"
-
+        // Henkan-like URLs:
+        // - env var: full URL with scheme
+        // - status.url: host/path without scheme
+        val sessionUrlForEnv = "http://$ingressHost/$sessionUid/"
+        val sessionUrlForStatus = "$ingressHost/$sessionUid/"
 
         // Start with system env vars (THEIACLOUD_*)
         val mergedEnv = mutableListOf<EnvVar>()
@@ -187,7 +220,11 @@ class SessionReconciler(
         mergedEnv += EnvVar("THEIACLOUD_SESSION_UID", sessionUid, null)
         mergedEnv += EnvVar("THEIACLOUD_SESSION_NAME", nonNullSessionName, null)
         mergedEnv += EnvVar("THEIACLOUD_SESSION_USER", user, null)
-        mergedEnv += EnvVar("THEIACLOUD_SESSION_URL", sessionUrl, null)
+        mergedEnv += EnvVar("THEIACLOUD_SESSION_URL", sessionUrlForEnv, null)
+
+
+
+
         if (!sessionSecret.isNullOrBlank()) {
             mergedEnv += EnvVar("THEIACLOUD_SESSION_SECRET", sessionSecret, null)
         }
@@ -294,12 +331,14 @@ class SessionReconciler(
 
         status.operatorStatus = "HANDLED"
         status.operatorMessage = "Session is running"
-        status.url = "http://$ingressHost/$pathId/"
+        status.url = sessionUrlForStatus
         status.error = null
         status.lastActivity = nowSeconds
 
         return UpdateControl.patchStatus(resource)
     }
+
+
 
     private fun failStatus(resource: Session, msg: String): UpdateControl<Session> {
         val status = ensureStatus(resource)
