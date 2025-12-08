@@ -73,23 +73,25 @@ class SessionReconciler(
             nonNullSessionName, nonNullWorkspaceName, nonNullAppDefName, user
         )
 
-        // --- 1.5) Only one Session per Workspace (by spec.workspace)
-        val otherSessions = client.resources(Session::class.java)
+        // --- 1.5) Only one *active* Session per Workspace (by spec.workspace)
+        val otherActiveSessions = client.resources(Session::class.java)
             .inNamespace(ns)
             .list()
             .items
-            .filter {
-                it.metadata?.uid != resource.metadata?.uid &&
-                        it.spec?.workspace == nonNullWorkspaceName
-            }
+            .filter { it.metadata?.uid != resource.metadata?.uid }              // not this Session
+            .filter { it.spec?.workspace == nonNullWorkspaceName }              // same workspace
+            .filter { it.status?.operatorStatus == "HANDLED" }                  // only active ones
+            .filter { it.metadata?.deletionTimestamp == null }                  // not being deleted
+        // (optional) you can also ignore sessions that never reached HANDLED at all (already done by the filter above)
 
-        if (otherSessions.isNotEmpty()) {
-            val existing = otherSessions.first()
+        if (otherActiveSessions.isNotEmpty()) {
+            val existing = otherActiveSessions.first()
             return failStatus(
                 resource,
                 "Workspace '$nonNullWorkspaceName' already has active session '${existing.spec?.name ?: existing.metadata?.name}'"
             )
         }
+
 
         // --- 1.6) Optional: max sessions per user (SESSIONS_PER_USER)
         val sessionsPerUser = System.getenv("SESSIONS_PER_USER")?.toIntOrNull()
@@ -138,6 +140,11 @@ class SessionReconciler(
         // NEW: monitor config
         val monitorPort = appSpec.monitor?.port
         val hasActivityTracker = appSpec.monitor?.activityTracker != null
+        val activityTracker = appSpec.monitor?.activityTracker
+        val activityTimeout = activityTracker?.timeoutAfter
+        val activityNotifyAfter = activityTracker?.notifyAfter
+
+
 
         // Optional fields from AppDefinition
         val imagePullPolicy = appSpec.imagePullPolicy ?: "IfNotPresent"
@@ -247,6 +254,14 @@ class SessionReconciler(
         if (hasActivityTracker) {
             mergedEnv += EnvVar("THEIACLOUD_MONITOR_ENABLE_ACTIVITY_TRACKER", "true", null)
         }
+
+        activityTimeout?.let {
+            mergedEnv += EnvVar("THEIACLOUD_MONITOR_TIMEOUT_AFTER", it.toString(), null)
+        }
+        activityNotifyAfter?.let {
+            mergedEnv += EnvVar("THEIACLOUD_MONITOR_NOTIFY_AFTER", it.toString(), null)
+        }
+
 
 
         // Now add user-defined envVars from Session.spec.envVars,

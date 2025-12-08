@@ -193,13 +193,19 @@ class WorkspaceReconciler(
         val projectNameLabel = toLabelValue(projectNameRaw)
 
         if (existing != null) {
-            // Ensure ownerReference back to Workspace
-            val refs = existing.metadata.ownerReferences ?: emptyList()
             val wsUid = ws.metadata?.uid
-            val hasWsOwner = refs.any { it.uid == wsUid }
+            if (wsUid != null) {
+                val currentRefs = existing.metadata.ownerReferences ?: emptyList()
 
-            if (!hasWsOwner && wsUid != null) {
-                existing.metadata.ownerReferences = refs + controllerOwnerRef(ws)
+                // 1) Drop any old Workspace controller refs (old UIDs etc.)
+                val cleanedRefs = currentRefs.filterNot { ref ->
+                    ref.controller == true &&
+                            ref.kind == "Workspace" &&
+                            ref.name == ws.metadata?.name
+                }
+
+                // 2) Add our current Workspace as *the* controller
+                existing.metadata.ownerReferences = cleanedRefs + controllerOwnerRef(ws)
             }
 
             // Patch / add Henkan PVC labels
@@ -221,6 +227,7 @@ class WorkspaceReconciler(
                 message = "PVC '$pvcName' already exists in namespace '$ns'"
             )
         }
+
 
         // --- Build label map for a *new* PVC ---
         val labels = mutableMapOf(
