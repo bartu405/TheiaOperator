@@ -133,10 +133,15 @@ class SessionReconciler(
         val port = appSpec.port
             ?: return failStatus(resource, "AppDefinition '$nonNullAppDefName' missing port")
 
+
+
+        // NEW: monitor config
+        val monitorPort = appSpec.monitor?.port
+        val hasActivityTracker = appSpec.monitor?.activityTracker != null
+
         // Optional fields from AppDefinition
         val imagePullPolicy = appSpec.imagePullPolicy ?: "IfNotPresent"
         val pullSecret = appSpec.pullSecret
-
 
         val downlinkLimit = appSpec.downlinkLimit   // Int?
         val uplinkLimit = appSpec.uplinkLimit       // Int?
@@ -172,18 +177,19 @@ class SessionReconciler(
         }
 
         // --- 2.8) Henkan-style labels on Session CR itself ---
-        // Use Workspace.spec to derive project name, etc.
         val sessMeta = resource.metadata!!
         val sessLabels = (sessMeta.labels ?: mutableMapOf()).toMutableMap()
 
         val wsSpec = workspace.spec
-        val projectName = wsSpec?.label ?: wsSpec?.options?.get("henkanProjectName")?.toString()
+        val projectNameRaw = wsSpec?.label ?: wsSpec?.options?.get("henkanProjectName")?.toString()
 
-        sessLabels["app.henkan.io/workspaceName"] = nonNullWorkspaceName
-        sessLabels["app.henkan.io/workspaceUser"] = user
-        if (!projectName.isNullOrBlank()) {
-            sessLabels["app.henkan.io/henkanProjectName"] = projectName
-        }
+        val workspaceNameLabel = toLabelValue(nonNullWorkspaceName)
+        val workspaceUserLabel = toLabelValue(user)
+        val projectNameLabel   = toLabelValue(projectNameRaw)
+
+        workspaceNameLabel?.let { sessLabels["app.henkan.io/workspaceName"] = it }
+        workspaceUserLabel?.let { sessLabels["app.henkan.io/workspaceUser"] = it }
+        projectNameLabel?.let   { sessLabels["app.henkan.io/henkanProjectName"] = it }
 
         sessMeta.labels = sessLabels
         client.resource(resource).inNamespace(ns).patch()
@@ -191,6 +197,7 @@ class SessionReconciler(
             "Session {}/{} labeled with Henkan labels: {}",
             ns, k8sName, sessLabels.filterKeys { it.startsWith("app.henkan.io/") }
         )
+
 
 
 
@@ -229,14 +236,16 @@ class SessionReconciler(
             mergedEnv += EnvVar("THEIACLOUD_SESSION_SECRET", sessionSecret, null)
         }
         // NEW – only if present as operator env
-        keycloakUrl?.let {
-            mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_URL", it, null)
+        keycloakUrl?.let { mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_URL", it, null) }
+        keycloakRealm?.let { mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_REALM", it, null) }
+        keycloakClientId?.let { mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_CLIENT_ID", it, null) }
+
+        // NEW:
+        if (monitorPort != null) {
+            mergedEnv += EnvVar("THEIACLOUD_MONITOR_PORT", monitorPort.toString(), null)
         }
-        keycloakRealm?.let {
-            mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_REALM", it, null)
-        }
-        keycloakClientId?.let {
-            mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_CLIENT_ID", it, null)
+        if (hasActivityTracker) {
+            mergedEnv += EnvVar("THEIACLOUD_MONITOR_ENABLE_ACTIVITY_TRACKER", "true", null)
         }
 
 
@@ -294,6 +303,7 @@ class SessionReconciler(
             envVarsFromConfigMaps,
             envVarsFromSecrets,
             port,
+            monitorPort,
             mountPath,
             fsGroupUid,
             runAsUid,
@@ -310,7 +320,7 @@ class SessionReconciler(
             sessionName = nonNullSessionName,
             port = port,
             owner = resource,
-            monitorPort = null, // or some real metrics port
+            monitorPort = monitorPort,
             appLabel = "theia",
             appDefinitionName = nonNullAppDefName,
             user = user,
@@ -339,6 +349,20 @@ class SessionReconciler(
     }
 
 
+    fun toLabelValue(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+
+        val trimmed = raw.trim().lowercase()
+        val mapped = trimmed.map { ch ->
+            if (ch.isLetterOrDigit() || ch == '-' || ch == '_' || ch == '.') ch else '-'
+        }.joinToString("")
+
+        val cleaned = mapped.trim('-', '_', '.')
+        return if (cleaned.isBlank()) null else cleaned
+    }
+
+
+
 
     private fun failStatus(resource: Session, msg: String): UpdateControl<Session> {
         val status = ensureStatus(resource)
@@ -365,6 +389,7 @@ class SessionReconciler(
         envVarsFromConfigMaps: List<String>,
         envVarsFromSecrets: List<String>,
         port: Int,
+        monitorPort: Int?,
         mountPath: String,
         fsGroupUid: Int,
         runAsUid: Int,
@@ -401,6 +426,7 @@ class SessionReconciler(
                 "envVarsFromConfigMaps" to envVarsFromConfigMaps,
                 "envVarsFromSecrets" to envVarsFromSecrets,
                 "port" to port,
+                "monitorPort" to monitorPort,
                 "mountPath" to mountPath,
                 "fsGroupUid" to fsGroupUid,
                 "runAsUid" to runAsUid,

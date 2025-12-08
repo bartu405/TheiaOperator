@@ -4,21 +4,21 @@ metadata:
   name: sample-app
   namespace: default
 spec:
-  # required fields from the CRD
-  name: "sample-app"           # logical name of the app
-  uid: 101           # some unique ID string
-  port: 3000                   # Theia usually listens on 3000 in the container
-  ingressname: "sample-app"    # must match the field name in the error: ingressname
+  name: sample-app
+  image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
+  port: 3000
+  uid: 101
+  ingressname: sample-app
   minInstances: 1
   maxInstances: 1
-
-  # your existing fields
-  image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
-  imagePullPolicy: IfNotPresent
-  pullSecret: regcred   # or whatever secret exists, or you can test with null
-  requestsCpu: "250m"
-  requestsMemory: "512Mi"
-  limitsCpu: "250m"
-  limitsMemory: "1Gi"
-  downlinkLimit: 2000   # 2 Mbit/s
-  uplinkLimit: 1000     # 1 Mbit/s
+  requestsCpu: 250m
+  requestsMemory: 512Mi
+  limitsCpu: 250m
+  limitsMemory: 1Gi
+  downlinkLimit: 2000
+  uplinkLimit: 1000
+  monitor:
+    port: 9000
+    activityTracker:
+      timeoutAfter: 1800
+      notifyAfter: 600

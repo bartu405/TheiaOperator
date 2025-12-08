@@ -27,9 +27,7 @@ class AppDefinitionSpec {
     var uplinkLimit: Int? = null
     var mountPath: String? = null
     var monitor: MonitorSpec? = null
-
-    // "options" is an arbitrary map, int-or-string in CRD → use String for now
-    var options: Map<String, String>? = null
+    var options: Map<String, Any>? = null
 }
 
 class MonitorSpec {

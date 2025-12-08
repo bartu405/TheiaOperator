@@ -1,3 +1,4 @@
+// File: TemplateRenderer.kt
 package com.example.hello
 
 import org.apache.velocity.VelocityContext

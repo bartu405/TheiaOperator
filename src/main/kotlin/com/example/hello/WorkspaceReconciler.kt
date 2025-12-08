@@ -90,14 +90,6 @@ class WorkspaceReconciler(
         )
 
 
-        meta.labels = labels
-        client.resource(resource).inNamespace(ns).patch()
-        log.info(
-            "Workspace {}/{} labeled with Henkan labels: {}",
-            ns, name, labels.filterKeys { it.startsWith("app.henkan.io/") }
-        )
-
-
         // --- link Workspace -> AppDefinition (if specified) ---
         // CRD field is now spec.appDefinition (string)
         val appDefName = spec.appDefinition
@@ -189,6 +181,17 @@ class WorkspaceReconciler(
         // Optional: storageClassName from options["storageClassName"]
         val storageClassName = spec?.options?.get("storageClassName")
 
+        // --- Henkan-style label values derived from Workspace spec ---
+        val workspaceNameRaw = spec?.name
+        val workspaceUserRaw = spec?.user
+        val projectNameRaw = spec?.label
+            ?: spec?.options?.get("henkanProjectName")?.toString()
+
+        // sanitize to valid label values
+        val workspaceNameLabel = toLabelValue(workspaceNameRaw) ?: workspaceNameRaw
+        val workspaceUserLabel = toLabelValue(workspaceUserRaw) ?: workspaceUserRaw
+        val projectNameLabel = toLabelValue(projectNameRaw)
+
         if (existing != null) {
             // Ensure ownerReference back to Workspace
             val refs = existing.metadata.ownerReferences ?: emptyList()
@@ -197,17 +200,21 @@ class WorkspaceReconciler(
 
             if (!hasWsOwner && wsUid != null) {
                 existing.metadata.ownerReferences = refs + controllerOwnerRef(ws)
-                pvcClient.resource(existing).patch()
-                log.info(
-                    "Patched PVC {} in ns {} to add ownerReference to Workspace {}",
-                    pvcName, ns, wsName
-                )
-            } else {
-                log.info(
-                    "PVC {} already exists in namespace {} with correct ownerReferences, skipping",
-                    pvcName, ns
-                )
             }
+
+            // Patch / add Henkan PVC labels
+            val pvcLabels = (existing.metadata.labels ?: emptyMap()).toMutableMap()
+            workspaceNameLabel?.let { pvcLabels["app.henkan.io/workspaceName"] = it }
+            workspaceUserLabel?.let { pvcLabels["app.henkan.io/workspaceUser"] = it }
+            projectNameLabel?.let { pvcLabels["app.henkan.io/henkanProjectName"] = it }
+
+            existing.metadata.labels = pvcLabels
+            pvcClient.resource(existing).patch()
+
+            log.info(
+                "PVC {} already exists in namespace {} with Henkan labels: {}",
+                pvcName, ns, pvcLabels.filterKeys { it.startsWith("app.henkan.io/") }
+            )
 
             return VolumeStatus(
                 status = "Exists",
@@ -215,15 +222,25 @@ class WorkspaceReconciler(
             )
         }
 
+        // --- Build label map for a *new* PVC ---
+        val labels = mutableMapOf(
+            "app" to "theia-workspace",
+            "workspace-name" to wsName,
+            "theia-cloud.io/workspace-name" to wsName,
+        )
+
+        workspaceNameLabel?.let { labels["app.henkan.io/workspaceName"] = it }
+        workspaceUserLabel?.let { labels["app.henkan.io/workspaceUser"] = it }
+        projectNameLabel?.let { labels["app.henkan.io/henkanProjectName"] = it }
+
         // create fresh PVC with ownerRef
         log.info("PVC {} not found in namespace {}, creating it", pvcName, ns)
 
+        // Note: we let the builder stay in the *SpecNested* type until endSpec()
         var pvcBuilder = PersistentVolumeClaimBuilder()
             .withNewMetadata()
             .withName(pvcName)
-            .addToLabels("app", "theia-workspace")
-            .addToLabels("workspace-name", wsName)
-            .addToLabels("theia-cloud.io/workspace-name", wsName)
+            .addToLabels(labels)
             .endMetadata()
             .withNewSpec()
             .withAccessModes("ReadWriteOnce")
@@ -232,7 +249,7 @@ class WorkspaceReconciler(
             .endResources()
 
         if (!storageClassName.isNullOrBlank()) {
-            pvcBuilder = pvcBuilder.withStorageClassName(storageClassName)
+            pvcBuilder = pvcBuilder.withStorageClassName(storageClassName.toString())
         }
 
         val pvc = pvcBuilder
@@ -242,13 +259,14 @@ class WorkspaceReconciler(
         pvc.metadata.ownerReferences = listOf(controllerOwnerRef(ws))
 
         pvcClient.resource(pvc).create()
-        log.info("Created PVC {}/{}", ns, pvcName)
+        log.info("Created PVC {}/{} with Henkan labels", ns, pvcName)
 
         return VolumeStatus(
             status = "Created",
             message = "PVC '$pvcName' created in namespace '$ns' with size '$size'"
         )
     }
+
 
     private fun ensureStatus(resource: Workspace): WorkspaceStatus {
         if (resource.status == null) {
