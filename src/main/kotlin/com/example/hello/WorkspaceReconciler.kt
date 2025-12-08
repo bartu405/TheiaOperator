@@ -54,6 +54,33 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
+        // --- Henkan-style labels on Workspace CR itself ---
+        // We derive:
+        //   app.henkan.io/henkanProjectName  <- spec.label OR spec.options["henkanProjectName"]
+        //   app.henkan.io/workspaceName      <- spec.name
+        //   app.henkan.io/workspaceUser      <- spec.user
+        val meta = resource.metadata!!
+        val labels = (meta.labels ?: mutableMapOf()).toMutableMap()
+
+        val workspaceName = spec.name!!
+        val workspaceUser = spec.user!!
+        // Prefer spec.label (like in lab: label: busra), but allow override via options["henkanProjectName"]
+        val projectName = spec.label ?: spec.options?.get("henkanProjectName")?.toString()
+
+        labels["app.henkan.io/workspaceName"] = workspaceName
+        labels["app.henkan.io/workspaceUser"] = workspaceUser
+        if (!projectName.isNullOrBlank()) {
+            labels["app.henkan.io/henkanProjectName"] = projectName
+        }
+
+        meta.labels = labels
+        client.resource(resource).inNamespace(ns).patch()
+        log.info(
+            "Workspace {}/{} labeled with Henkan labels: {}",
+            ns, name, labels.filterKeys { it.startsWith("app.henkan.io/") }
+        )
+
+
         // --- link Workspace -> AppDefinition (if specified) ---
         // CRD field is now spec.appDefinition (string)
         val appDefName = spec.appDefinition

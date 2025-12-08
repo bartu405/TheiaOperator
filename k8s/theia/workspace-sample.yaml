@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   name: "demo-ws"
-  label: "Bartu demo workspace"
+  label: "bartu-demo-workspace"
   appDefinition: "sample-app"
   user: "bartu"
   storage: "5Gi"

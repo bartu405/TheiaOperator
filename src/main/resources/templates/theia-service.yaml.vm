@@ -5,8 +5,23 @@ metadata:
   name: ${serviceName}
   namespace: ${namespace}
   labels:
+
+    # old labels – keep them so selectors continue to work
     app: ${appLabel}
     session-name: ${sessionName}
+
+
+    # Henkan-style standard labels:
+    app.kubernetes.io/component: session
+    app.kubernetes.io/part-of: theia-cloud
+
+    # Henkan-style theia-cloud labels
+    theia-cloud.io/app-definition: ${appDefinitionName}
+    theia-cloud.io/session: ${sessionName}
+    theia-cloud.io/session-uuid: ${sessionUid}
+    theia-cloud.io/user: ${user}
+
+
 spec:
   type: ${serviceType}
   selector:

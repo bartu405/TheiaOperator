@@ -7,6 +7,17 @@ metadata:
   labels:
     app: theia
     session-name: ${sessionName}
+
+    # Henkan-style standard labels:
+    app.kubernetes.io/component: session
+    app.kubernetes.io/part-of: theia-cloud
+
+    # Henkan-style theia-cloud labels + keep your own
+    theia-cloud.io/app-definition: ${appDefinitionName}
+    theia-cloud.io/session: ${sessionName}
+    theia-cloud.io/session-uuid: ${sessionUid}
+    theia-cloud.io/session-uid: ${sessionUid} # keep old key too for now
+    theia-cloud.io/user: ${user}
 spec:
   replicas: 1
   selector:
@@ -18,10 +29,17 @@ spec:
       labels:
         app: theia
         session-name: ${sessionName}
+
+        # Henkan-style standard labels:
+        app.kubernetes.io/component: session
+        app.kubernetes.io/part-of: theia-cloud
+
+        # Henkan-style theia-cloud labels + keep your own
         theia-cloud.io/app-definition: ${appDefinitionName}
         theia-cloud.io/session: ${sessionName}
-        theia-cloud.io/user: ${user}
+        theia-cloud.io/session-uuid: ${sessionUid}
         theia-cloud.io/session-uid: ${sessionUid}
+        theia-cloud.io/user: ${user}
     annotations:
 #if( $downlinkLimit )
         kubernetes.io/ingress-bandwidth: "${downlinkLimit}k"

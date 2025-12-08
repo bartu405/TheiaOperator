@@ -140,6 +140,29 @@ class SessionReconciler(
             )
         }
 
+        // --- 2.8) Henkan-style labels on Session CR itself ---
+        // Use Workspace.spec to derive project name, etc.
+        val sessMeta = resource.metadata!!
+        val sessLabels = (sessMeta.labels ?: mutableMapOf()).toMutableMap()
+
+        val wsSpec = workspace.spec
+        val projectName = wsSpec?.label ?: wsSpec?.options?.get("henkanProjectName")?.toString()
+
+        sessLabels["app.henkan.io/workspaceName"] = nonNullWorkspaceName
+        sessLabels["app.henkan.io/workspaceUser"] = user
+        if (!projectName.isNullOrBlank()) {
+            sessLabels["app.henkan.io/henkanProjectName"] = projectName
+        }
+
+        sessMeta.labels = sessLabels
+        client.resource(resource).inNamespace(ns).patch()
+        log.info(
+            "Session {}/{} labeled with Henkan labels: {}",
+            ns, k8sName, sessLabels.filterKeys { it.startsWith("app.henkan.io/") }
+        )
+
+
+
         // --- 3) Env: system THEIACLOUD_* + user envVars
 
         val sessionEnvMap = spec.envVars ?: emptyMap()
@@ -246,12 +269,15 @@ class SessionReconciler(
         )
 
         ensureTheiaService(
-            ns,
-            nonNullSessionName,
-            port,
+            namespace = ns,
+            sessionName = nonNullSessionName,
+            port = port,
             owner = resource,
             monitorPort = null, // or some real metrics port
-            appLabel = "theia"
+            appLabel = "theia",
+            appDefinitionName = nonNullAppDefName,
+            user = user,
+            sessionUid = sessionUid
         )
 
         ensureTheiaIngress(
@@ -368,7 +394,10 @@ class SessionReconciler(
         port: Int,
         owner: Session,
         monitorPort: Int? = null,
-        appLabel: String = "theia"
+        appLabel: String = "theia",
+        appDefinitionName: String,
+        user: String,
+        sessionUid: String,
     ) {
         val yaml = TemplateRenderer.render(
             "templates/theia-service.yaml.vm",
@@ -380,7 +409,10 @@ class SessionReconciler(
                 "servicePort" to port,
                 "targetPort" to port,
                 "monitorPort" to monitorPort,
-                "appLabel" to appLabel
+                "appLabel" to appLabel,
+                "appDefinitionName" to appDefinitionName,
+                "user" to user,
+                "sessionUid" to sessionUid,
             )
         )
 
