@@ -6,6 +6,9 @@ import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
+import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
+import controllerOwnerRef
+
 import org.slf4j.LoggerFactory
 
 @ControllerConfiguration(name = "appdefinition-controller")
@@ -75,6 +78,41 @@ class AppDefinitionReconciler(
         // If we reach here, spec looks good from operator POV
         status.operatorStatus = "HANDLED"
         status.operatorMessage = "AppDefinition is valid"
+
+        // --- NEW: ensure AppDefinition is owner of existing shared Ingress (if any) ---
+        val ingressName = spec.ingressname!!
+
+        val ingressClient = client.network().v1().ingresses().inNamespace(ns)
+        val existing = ingressClient.withName(ingressName).get()
+
+        if (existing == null) {
+            // Don't create an empty Ingress here; SessionReconciler will lazily create
+            log.info(
+                "Shared Ingress '{}' for AppDefinition {}/{} not found; it will be created by SessionReconciler when a Session is created",
+                ingressName, ns, name
+            )
+        } else {
+            val currentOwners = existing.metadata.ownerReferences ?: emptyList()
+            val hasOwner = currentOwners.any { it.uid == resource.metadata?.uid }
+
+            if (!hasOwner) {
+                log.info(
+                    "Adding AppDefinition {}/{} as owner of existing Ingress '{}'",
+                    ns, name, ingressName
+                )
+                val newOwners = currentOwners.toMutableList()
+                newOwners.add(controllerOwnerRef(resource))
+
+                val patched = IngressBuilder(existing)
+                    .editMetadata()
+                    .withOwnerReferences(newOwners)
+                    .endMetadata()
+                    .build()
+
+                ingressClient.resource(patched).createOrReplace()
+            }
+        }
+
 
         return UpdateControl.patchStatus(resource)
     }

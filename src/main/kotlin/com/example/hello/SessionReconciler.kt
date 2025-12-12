@@ -28,8 +28,10 @@ class SessionReconciler(
         const val FINALIZER_NAME = "sessions.example.suleyman.io/finalizer"
         private const val SERVICE_PORT_NAME = "http" // must match Service port name
         // One shared Ingress per AppDefinition, like Henkan
-        fun ingressNameForAppDef(appDefName: String): String =
-            "theia-${appDefName}-ingress"   // you can change pattern if you want
+        // Prefer the explicit spec.ingressname, fall back to a derived name.
+        fun ingressNameForAppDef(appDef: AppDefinition): String =
+            appDef.spec?.ingressname
+                ?: "theia-${appDef.metadata?.name ?: "unknown-app"}-ingress"
     }
 
     private val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
@@ -335,7 +337,7 @@ class SessionReconciler(
             sessionUid = sessionUid
         )
 
-        val ingressName = ingressNameForAppDef(nonNullAppDefName)
+        val ingressName = ingressNameForAppDef(appDef)
         ensureSharedIngressForSession(
             session = resource,
             serviceName = serviceName,
@@ -369,7 +371,21 @@ class SessionReconciler(
             return DeleteControl.defaultDelete()
         }
 
-        val ingressName = ingressNameForAppDef(appDefName)
+        // Load AppDefinition so we can determine the ingress name
+        val appDef = client.resources(AppDefinition::class.java)
+            .inNamespace(ns)
+            .withName(appDefName)
+            .get()
+
+        if (appDef == null) {
+            log.warn(
+                "AppDefinition '{}' not found in namespace {}, cannot determine shared Ingress name, skipping ingress cleanup",
+                appDefName, ns
+            )
+            return DeleteControl.defaultDelete()
+        }
+
+        val ingressName = ingressNameForAppDef(appDef)
         val host = sessionHost(resource)
         val path = sessionPath(resource)
 
@@ -389,36 +405,37 @@ class SessionReconciler(
             return DeleteControl.defaultDelete()
         }
 
-        val builder = IngressBuilder(ingress)
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
         var changed = false
 
-        val newRules = rules.mapNotNull { rule ->
+        // Build a new rules list, but never delete the Ingress itself
+        val newRules = rules.map { rule ->
             if (rule.host != host) {
                 rule
             } else {
                 val http = rule.http
-                val paths = http?.paths?.toMutableList() ?: mutableListOf()
+                val paths = http?.paths ?: emptyList()
+
                 val filteredPaths = paths.filter { it.path != path }
 
-                if (filteredPaths.size != paths.size) {
-                    changed = true
-                    log.info(
-                        "Removed path {} for Session {}/{} from Ingress '{}' rule host {}",
-                        path, ns, name, ingressName, host
-                    )
-                }
-
-                if (filteredPaths.isEmpty()) {
-                    // Drop entire rule if no paths left for this host
-                    log.info(
-                        "No more paths for host {} on Ingress '{}', dropping rule",
-                        host, ingressName
-                    )
-                    null
-                } else {
-                    rule.http?.paths = filteredPaths
+                if (filteredPaths.size == paths.size) {
+                    // nothing removed
                     rule
+                } else {
+                    changed = true
+                    if (filteredPaths.isEmpty()) {
+                        // keep host, drop http -> host-only rule, no active sessions
+                        IngressRuleBuilder(rule)
+                            .withHttp(null)
+                            .build()
+                    } else {
+                        // still some paths left for this host
+                        IngressRuleBuilder(rule)
+                            .editOrNewHttp()
+                            .withPaths(filteredPaths)
+                            .endHttp()
+                            .build()
+                    }
                 }
             }
         }.toMutableList()
@@ -431,13 +448,17 @@ class SessionReconciler(
             return DeleteControl.defaultDelete()
         }
 
-        // IMPORTANT difference from before: we DO NOT delete the Ingress when newRules is empty.
-        builder.editOrNewSpec().withRules(newRules).endSpec()
-        ingressClient.resource(builder.build()).createOrReplace()
+        val updatedIngress = IngressBuilder(ingress)
+            .editOrNewSpec()
+            .withRules(newRules)
+            .endSpec()
+            .build()
 
-        // Finalizer work done
+        ingressClient.resource(updatedIngress).createOrReplace()
+
         return DeleteControl.defaultDelete()
     }
+
 
 
     // === Helpers for URL/paths =============================================================
@@ -690,12 +711,19 @@ class SessionReconciler(
                 existingPath.backend?.service?.port?.name = SERVICE_PORT_NAME
             }
 
-            rule.http?.paths = paths
-            rules[ruleIndex] = rule
+            // IMPORTANT: rebuild the rule so that http is created if it was null
+            val newRule = IngressRuleBuilder(rule)
+                .editOrNewHttp()
+                .withPaths(paths)
+                .endHttp()
+                .build()
+
+            rules[ruleIndex] = newRule
         }
 
         ingress.spec?.setRules(rules)
         ingressClient.resource(ingress).createOrReplace()
+
     }
 
 }
