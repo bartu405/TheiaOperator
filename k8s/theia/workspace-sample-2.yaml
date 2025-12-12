@@ -4,8 +4,8 @@ metadata:
   name: demo-ws-2
   namespace: default
 spec:
-  name: demo-ws-2
-  label: Bartu second workspace
-  appDefinition: sample-app
-  storage: pvc_name
-  user: bartu
+  name: "demo-ws-2"
+  label: "bartu-demo-workspace-2"
+  storage: "workspace-demo-ws-2"   # PVC name
+  appDefinition: "sample-app"
+  user: "bartu"

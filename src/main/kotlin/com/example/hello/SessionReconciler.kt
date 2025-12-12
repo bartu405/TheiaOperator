@@ -1,39 +1,56 @@
 // File: SessionReconciler.kt
 package com.example.hello
 
+import controllerOwnerRef
 import io.fabric8.kubernetes.api.model.EnvVar
+import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPathBuilder
+import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
+import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder
 import io.fabric8.kubernetes.client.KubernetesClient
+import io.javaoperatorsdk.operator.api.reconciler.Cleaner
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
+import io.javaoperatorsdk.operator.api.reconciler.DeleteControl
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
-import controllerOwnerRef
 import java.io.ByteArrayInputStream
 
-@ControllerConfiguration(name = "session-controller")
+@ControllerConfiguration(
+    name = "session-controller",
+    finalizerName = SessionReconciler.FINALIZER_NAME
+)
 class SessionReconciler(
     private val client: KubernetesClient
-) : Reconciler<Session> {
+) : Reconciler<Session>, Cleaner<Session> {
+
+    companion object {
+        const val FINALIZER_NAME = "sessions.example.suleyman.io/finalizer"
+        private const val SHARED_INGRESS_NAME = "theia"
+        private const val SERVICE_PORT_NAME = "http" // must match Service port name
+    }
 
     private val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
     private val log = LoggerFactory.getLogger(SessionReconciler::class.java)
+
     // Optional limit like Henkan's --sessionsPerUser
     private val sessionsPerUser: Int? = System.getenv("SESSIONS_PER_USER")?.toIntOrNull()
-
-
 
     private val keycloakUrl: String? = System.getenv("THEIACLOUD_KEYCLOAK_URL")
     private val keycloakRealm: String? = System.getenv("THEIACLOUD_KEYCLOAK_REALM")
     private val keycloakClientId: String? = System.getenv("THEIACLOUD_KEYCLOAK_CLIENT_ID")
 
-
-
     override fun reconcile(resource: Session, context: Context<Session>): UpdateControl<Session> {
         val ns = resource.metadata?.namespace ?: "default"
         val k8sName = resource.metadata?.name ?: "<no-name>"
-        val spec = resource.spec
 
+        val meta = resource.metadata
+        if (meta == null) {
+            log.warn("Session {}/{} has no metadata, skipping", ns, k8sName)
+            return UpdateControl.noUpdate()
+        }
+
+        val spec = resource.spec
         log.info("Reconciling Session {}/{} spec={}", ns, k8sName, spec)
 
         val status = ensureStatus(resource)
@@ -50,7 +67,6 @@ class SessionReconciler(
         val envVarsFromConfigMaps = spec.envVarsFromConfigMaps ?: emptyList()
         val envVarsFromSecrets = spec.envVarsFromSecrets ?: emptyList()
         val sessionSecret = spec.sessionSecret
-
 
         if (sessionName.isNullOrBlank() ||
             workspaceName.isNullOrBlank() ||
@@ -73,16 +89,15 @@ class SessionReconciler(
             nonNullSessionName, nonNullWorkspaceName, nonNullAppDefName, user
         )
 
-        // --- 1.5) Only one *active* Session per Workspace (by spec.workspace)
+        // --- 1.5) Only one *active* Session per Workspace
         val otherActiveSessions = client.resources(Session::class.java)
             .inNamespace(ns)
             .list()
             .items
-            .filter { it.metadata?.uid != resource.metadata?.uid }              // not this Session
-            .filter { it.spec?.workspace == nonNullWorkspaceName }              // same workspace
-            .filter { it.status?.operatorStatus == "HANDLED" }                  // only active ones
-            .filter { it.metadata?.deletionTimestamp == null }                  // not being deleted
-        // (optional) you can also ignore sessions that never reached HANDLED at all (already done by the filter above)
+            .filter { it.metadata?.uid != resource.metadata?.uid }
+            .filter { it.spec?.workspace == nonNullWorkspaceName }
+            .filter { it.status?.operatorStatus == "HANDLED" }
+            .filter { it.metadata?.deletionTimestamp == null }
 
         if (otherActiveSessions.isNotEmpty()) {
             val existing = otherActiveSessions.first()
@@ -92,19 +107,14 @@ class SessionReconciler(
             )
         }
 
-
         // --- 1.6) Optional: max sessions per user (SESSIONS_PER_USER)
-
         if (sessionsPerUser != null && sessionsPerUser > 0) {
             val allUserSessions = client.resources(Session::class.java)
                 .inNamespace(ns)
                 .list()
                 .items
-                // same user
                 .filter { it.spec?.user == user }
-                // ignore *this* Session object while reconciling
                 .filter { it.metadata?.uid != resource.metadata?.uid }
-                // count only active ones (HANDLED)
                 .filter { it.status?.operatorStatus == "HANDLED" }
 
             val activeCount = allUserSessions.size
@@ -116,8 +126,6 @@ class SessionReconciler(
                 )
             }
         }
-
-
 
         // --- 2) Load AppDefinition
         val appDef = client.resources(AppDefinition::class.java)
@@ -134,8 +142,6 @@ class SessionReconciler(
         val port = appSpec.port
             ?: return failStatus(resource, "AppDefinition '$nonNullAppDefName' missing port")
 
-
-
         // NEW: monitor config
         val monitorPort = appSpec.monitor?.port
         val hasActivityTracker = appSpec.monitor?.activityTracker != null
@@ -143,15 +149,11 @@ class SessionReconciler(
         val activityTimeout = activityTracker?.timeoutAfter
         val activityNotifyAfter = activityTracker?.notifyAfter
 
-
-
         // Optional fields from AppDefinition
         val imagePullPolicy = appSpec.imagePullPolicy ?: "IfNotPresent"
         val pullSecret = appSpec.pullSecret
-
-        val downlinkLimit = appSpec.downlinkLimit   // Int?
-        val uplinkLimit = appSpec.uplinkLimit       // Int?
-
+        val downlinkLimit = appSpec.downlinkLimit
+        val uplinkLimit = appSpec.uplinkLimit
 
         // --- 2.5) Workspace existence
         val workspace = client.resources(Workspace::class.java)
@@ -169,9 +171,7 @@ class SessionReconciler(
             )
         }
 
-
         // --- 2.6) Ensure Session has ownerRef = Workspace
-        val meta = resource.metadata
         val existingRefs = meta.ownerReferences ?: emptyList()
         val hasWsOwner = existingRefs.any { it.uid == workspace.metadata.uid }
 
@@ -180,7 +180,10 @@ class SessionReconciler(
             newRefs.add(controllerOwnerRef(workspace))
             meta.ownerReferences = newRefs
             client.resource(resource).inNamespace(ns).patch()
-            log.info("Added ownerReference Workspace {}/{} to Session {}/{}", ns, workspace.metadata.name, ns, k8sName)
+            log.info(
+                "Added ownerReference Workspace {}/{} to Session {}/{}",
+                ns, workspace.metadata.name, ns, k8sName
+            )
         }
 
         // --- 2.7) Session and Workspace must agree on appDefinition
@@ -192,7 +195,7 @@ class SessionReconciler(
             )
         }
 
-        // --- 2.8) Henkan-style labels on Session CR itself ---
+        // --- 2.8) Henkan-style labels on Session CR itself
         val sessMeta = resource.metadata!!
         val sessLabels = (sessMeta.labels ?: mutableMapOf()).toMutableMap()
 
@@ -201,11 +204,11 @@ class SessionReconciler(
 
         val workspaceNameLabel = toHenkanLabelValue(nonNullWorkspaceName)
         val workspaceUserLabel = toHenkanLabelValue(user)
-        val projectNameLabel   = toHenkanLabelValue(projectNameRaw)
+        val projectNameLabel = toHenkanLabelValue(projectNameRaw)
 
         workspaceNameLabel?.let { sessLabels["app.henkan.io/workspaceName"] = it }
         workspaceUserLabel?.let { sessLabels["app.henkan.io/workspaceUser"] = it }
-        projectNameLabel?.let   { sessLabels["app.henkan.io/henkanProjectName"] = it }
+        projectNameLabel?.let { sessLabels["app.henkan.io/henkanProjectName"] = it }
 
         sessMeta.labels = sessLabels
         client.resource(resource).inNamespace(ns).patch()
@@ -214,28 +217,20 @@ class SessionReconciler(
             ns, k8sName, sessLabels.filterKeys { it.startsWith("app.henkan.io/") }
         )
 
-
-
-
         // --- 3) Env: system THEIACLOUD_* + user envVars
-
         val sessionEnvMap = spec.envVars ?: emptyMap()
 
-        // Values derived from AppDefinition / Session / Ingress
         val appId = appSpec.uid?.toString() ?: nonNullAppDefName
         val serviceName = "theia-$nonNullSessionName"
         val serviceUrl = "http://$serviceName:$port"
 
-        // Use the Kubernetes UID of the Session as the Henkan-style path segment
+        // Use the Kubernetes UID of the Session as the path segment
         val sessionUid = resource.metadata?.uid ?: ""
 
         // Henkan-like URLs:
-        // - env var: full URL with scheme
-        // - status.url: host/path without scheme
         val sessionUrlForEnv = "http://$ingressHost/$sessionUid/"
         val sessionUrlForStatus = "$ingressHost/$sessionUid/"
 
-        // Start with system env vars (THEIACLOUD_*)
         val mergedEnv = mutableListOf<EnvVar>()
 
         mergedEnv += EnvVar("THEIACLOUD_APP_ID", appId, null)
@@ -245,25 +240,20 @@ class SessionReconciler(
         mergedEnv += EnvVar("THEIACLOUD_SESSION_USER", user, null)
         mergedEnv += EnvVar("THEIACLOUD_SESSION_URL", sessionUrlForEnv, null)
 
-
-
-
         if (!sessionSecret.isNullOrBlank()) {
             mergedEnv += EnvVar("THEIACLOUD_SESSION_SECRET", sessionSecret, null)
         }
-        // NEW – only if present as operator env
+
         keycloakUrl?.let { mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_URL", it, null) }
         keycloakRealm?.let { mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_REALM", it, null) }
         keycloakClientId?.let { mergedEnv += EnvVar("THEIACLOUD_KEYCLOAK_CLIENT_ID", it, null) }
 
-        // NEW:
         if (monitorPort != null) {
             mergedEnv += EnvVar("THEIACLOUD_MONITOR_PORT", monitorPort.toString(), null)
         }
         if (hasActivityTracker) {
             mergedEnv += EnvVar("THEIACLOUD_MONITOR_ENABLE_ACTIVITY_TRACKER", "true", null)
         }
-
         activityTimeout?.let {
             mergedEnv += EnvVar("THEIACLOUD_MONITOR_TIMEOUT_AFTER", it.toString(), null)
         }
@@ -271,10 +261,7 @@ class SessionReconciler(
             mergedEnv += EnvVar("THEIACLOUD_MONITOR_NOTIFY_AFTER", it.toString(), null)
         }
 
-
-
-        // Now add user-defined envVars from Session.spec.envVars,
-            // but don't let them override THEIACLOUD_* keys
+        // User env vars, without overriding THEIACLOUD_*
         sessionEnvMap.forEach { (name, value) ->
             if (!name.startsWith("THEIACLOUD_")) {
                 mergedEnv += EnvVar(name, value.toString(), null)
@@ -293,8 +280,6 @@ class SessionReconciler(
             mergedEnv.joinToString { "${it.name}=${it.value}" }
         )
 
-
-
         // --- 4) Resources from AppDefinition
         val requestsCpu = appSpec.requestsCpu ?: "250m"
         val requestsMemory = appSpec.requestsMemory ?: "512Mi"
@@ -307,18 +292,14 @@ class SessionReconciler(
         val runAsUid = appSpec.uid ?: defaultUid
         val fsGroupUid = appSpec.uid ?: defaultUid
 
-
-
-
-
-        // --- 5) Ensure Deployment + Service + Ingress
+        // --- 5) Ensure Deployment + Service + SHARED Ingress
         ensureTheiaDeployment(
             ns,
             nonNullSessionName,
             nonNullWorkspaceName,
             image,
-            imagePullPolicy = imagePullPolicy,   // NEW
-            pullSecret = pullSecret,
+            imagePullPolicy,
+            pullSecret,
             requestsCpu,
             requestsMemory,
             limitsCpu,
@@ -352,14 +333,8 @@ class SessionReconciler(
             sessionUid = sessionUid
         )
 
-        ensureTheiaIngress(
-            ns,
-            nonNullSessionName,
-            port,
-            sessionUid = sessionUid,
-            owner = resource
-        )
-
+        // NEW: shared Ingress with per-session path
+        ensureSharedIngressForSession(resource, serviceName)
 
         // --- 6) Status on success
         val nowMillis = System.currentTimeMillis()
@@ -373,8 +348,95 @@ class SessionReconciler(
         return UpdateControl.patchStatus(resource)
     }
 
+    override fun cleanup(resource: Session, context: Context<Session>): DeleteControl {
+        val ns = resource.metadata?.namespace ?: "default"
+        val name = resource.metadata?.name ?: "<no-name>"
 
+        val host = sessionHost(resource)
+        val path = sessionPath(resource)
 
+        log.info(
+            "Running cleanup for Session {}/{}: removing path {} on host {} from shared Ingress '{}'",
+            ns, name, path, host, SHARED_INGRESS_NAME
+        )
+
+        val ingressClient = client.network().v1().ingresses().inNamespace(ns)
+        val ingress = ingressClient.withName(SHARED_INGRESS_NAME).get()
+
+        if (ingress == null) {
+            log.info(
+                "Shared Ingress '{}' not found in namespace {}, nothing to cleanup",
+                SHARED_INGRESS_NAME, ns
+            )
+            return DeleteControl.defaultDelete()
+        }
+
+        val builder = IngressBuilder(ingress)
+        val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
+        var changed = false
+
+        val newRules = rules.mapNotNull { rule ->
+            if (rule.host != host) {
+                rule
+            } else {
+                val http = rule.http
+                val paths = http?.paths?.toMutableList() ?: mutableListOf()
+                val filteredPaths = paths.filter { it.path != path }
+
+                if (filteredPaths.size != paths.size) {
+                    changed = true
+                    log.info(
+                        "Removed path {} for Session {}/{} from Ingress '{}' rule host {}",
+                        path, ns, name, SHARED_INGRESS_NAME, host
+                    )
+                }
+
+                if (filteredPaths.isEmpty()) {
+                    // Drop entire rule if no paths left
+                    log.info(
+                        "No more paths for host {} on Ingress '{}', dropping rule",
+                        host, SHARED_INGRESS_NAME
+                    )
+                    null
+                } else {
+                    rule.http?.paths = filteredPaths
+                    rule
+                }
+            }
+        }.toMutableList()
+
+        if (!changed) {
+            log.info(
+                "No matching path {} on host {} in Ingress '{}', nothing to change",
+                path, host, SHARED_INGRESS_NAME
+            )
+            return DeleteControl.defaultDelete()
+        }
+
+        if (newRules.isEmpty()) {
+            log.info(
+                "Ingress '{}' in namespace {} has no rules left after cleanup, deleting it",
+                SHARED_INGRESS_NAME, ns
+            )
+            ingressClient.withName(SHARED_INGRESS_NAME).delete()
+        } else {
+            builder.editOrNewSpec().withRules(newRules).endSpec()
+            ingressClient.resource(builder.build()).createOrReplace()
+        }
+
+        // Tell SDK: finalizer work is done, safe to remove finalizer
+        return DeleteControl.defaultDelete()
+    }
+
+    // === Helpers for URL/paths =============================================================
+
+    private fun sessionHost(@Suppress("UNUSED_PARAMETER") session: Session): String =
+        ingressHost
+
+    private fun sessionPath(session: Session): String =
+        "/${session.metadata?.uid}/"
+
+    // === Status & error handling ===========================================================
 
     private fun failStatus(resource: Session, msg: String): UpdateControl<Session> {
         val status = ensureStatus(resource)
@@ -382,16 +444,24 @@ class SessionReconciler(
         status.operatorMessage = msg
         status.error = msg
         status.url = null
-        // lastActivity left as-is (it might represent last good activity)
         return UpdateControl.patchStatus(resource)
     }
+
+    private fun ensureStatus(resource: Session): SessionStatus {
+        if (resource.status == null) {
+            resource.status = SessionStatus()
+        }
+        return resource.status!!
+    }
+
+    // === Deployment / Service creation via templates =======================================
 
     private fun ensureTheiaDeployment(
         namespace: String,
         sessionName: String,
         workspaceName: String,
         image: String,
-        imagePullPolicy: String,      // NEW
+        imagePullPolicy: String,
         pullSecret: String?,
         requestsCpu: String,
         requestsMemory: String,
@@ -415,9 +485,10 @@ class SessionReconciler(
     ) {
         val deploymentName = "theia-$sessionName"
 
-        log.info("Ensuring Deployment {} in ns {} using PVC {}", deploymentName, namespace, pvcName)
-
-
+        log.info(
+            "Ensuring Deployment {} in ns {} using PVC {}",
+            deploymentName, namespace, pvcName
+        )
 
         val yaml = TemplateRenderer.render(
             "templates/theia-deployment.yaml.vm",
@@ -428,7 +499,7 @@ class SessionReconciler(
                 "workspaceName" to workspaceName,
                 "pvcName" to pvcName,
                 "image" to image,
-                "imagePullPolicy" to imagePullPolicy,   // NEW
+                "imagePullPolicy" to imagePullPolicy,
                 "pullSecret" to pullSecret,
                 "requestsCpu" to requestsCpu,
                 "requestsMemory" to requestsMemory,
@@ -451,10 +522,8 @@ class SessionReconciler(
                 "appDefinitionName" to appDefinitionName,
                 "user" to user,
                 "sessionUid" to sessionUid
-
             )
         )
-
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
@@ -498,43 +567,119 @@ class SessionReconciler(
         }
 
         log.info("Rendered Service YAML:\n{}", yaml)
-
     }
 
+    // === Shared Ingress helper =============================================================
 
-    private fun ensureTheiaIngress(
-        namespace: String,
-        sessionName: String,
-        port: Int,
-        sessionUid: String,
-        owner: Session
-    )
-    {
-        val yaml = TemplateRenderer.render(
-            "templates/theia-ingress.yaml.vm",
-            mapOf(
-                "namespace" to namespace,
-                "ingressName" to "theia-$sessionName",
-                "sessionName" to sessionName,
-                "sessionUid" to sessionUid,      // NEW
-                "serviceName" to "theia-$sessionName",
-                "servicePort" to port,
-                "host" to ingressHost
+    private fun ensureSharedIngressForSession(
+        session: Session,
+        serviceName: String
+    ) {
+        val ns = session.metadata?.namespace ?: "default"
+        val host = sessionHost(session)
+        val path = sessionPath(session)
+
+        val ingressClient = client.network().v1().ingresses().inNamespace(ns)
+        val existing = ingressClient.withName(SHARED_INGRESS_NAME).get()
+
+        if (existing == null) {
+            log.info(
+                "Shared Ingress '{}' not found in {}, creating new with path {} -> service {}",
+                SHARED_INGRESS_NAME, ns, path, serviceName
             )
-        )
+            val ingress = IngressBuilder()
+                .withNewMetadata()
+                .withName(SHARED_INGRESS_NAME)
+                .addToLabels("app", "theia")
+                .endMetadata()
+                .withNewSpec()
+                .addNewRule()
+                .withHost(host)
+                .withNewHttp()
+                .addNewPath()
+                .withPath(path)
+                .withPathType("Prefix")
+                .withNewBackend()
+                .withNewService()
+                .withName(serviceName)
+                .withNewPort().withName(SERVICE_PORT_NAME).endPort()
+                .endService()
+                .endBackend()
+                .endPath()
+                .endHttp()
+                .endRule()
+                .endSpec()
+                .build()
 
-
-        val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
-        resources.forEach { r ->
-            r.metadata.ownerReferences = listOf(controllerOwnerRef(owner))
-            client.resource(r).inNamespace(namespace).createOrReplace()
+            ingressClient.resource(ingress).createOrReplace()
+            return
         }
-    }
 
-    private fun ensureStatus(resource: Session): SessionStatus {
-        if (resource.status == null) {
-            resource.status = SessionStatus()
+        // Update existing shared Ingress
+        val ingress = IngressBuilder(existing).build()
+        val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
+
+        val ruleIndex = rules.indexOfFirst { it.host == host }
+        if (ruleIndex == -1) {
+            // new rule for host
+            log.info(
+                "Adding new host rule {} with path {} -> {} to Ingress '{}'",
+                host, path, serviceName, SHARED_INGRESS_NAME
+            )
+            val newRule = IngressRuleBuilder()
+                .withHost(host)
+                .withNewHttp()
+                .addNewPath()
+                .withPath(path)
+                .withPathType("Prefix")
+                .withNewBackend()
+                .withNewService()
+                .withName(serviceName)
+                .withNewPort().withName(SERVICE_PORT_NAME).endPort()
+                .endService()
+                .endBackend()
+                .endPath()
+                .endHttp()
+                .build()
+            rules.add(newRule)
+        } else {
+            // update existing host rule
+            val rule = rules[ruleIndex]
+            val http = rule.http
+            val paths = http?.paths?.toMutableList() ?: mutableListOf()
+            val existingPathIndex = paths.indexOfFirst { it.path == path }
+
+            if (existingPathIndex == -1) {
+                log.info(
+                    "Adding new path {} -> {} under host {} to Ingress '{}'",
+                    path, serviceName, host, SHARED_INGRESS_NAME
+                )
+                val newPath = HTTPIngressPathBuilder()
+                    .withPath(path)
+                    .withPathType("Prefix")
+                    .withNewBackend()
+                    .withNewService()
+                    .withName(serviceName)
+                    .withNewPort().withName(SERVICE_PORT_NAME).endPort()
+                    .endService()
+                    .endBackend()
+                    .build()
+                paths.add(newPath)
+            } else {
+                log.info(
+                    "Updating existing path {} under host {} in Ingress '{}' to point to {}",
+                    path, host, SHARED_INGRESS_NAME, serviceName
+                )
+                val existingPath = paths[existingPathIndex]
+                existingPath.backend?.service?.name = serviceName
+                existingPath.backend?.service?.port?.name = SERVICE_PORT_NAME
+            }
+
+            rule.http?.paths = paths
+            rules[ruleIndex] = rule
         }
-        return resource.status!!
+
+        ingress.spec?.setRules(rules)
+        ingressClient.resource(ingress).createOrReplace()
     }
 }

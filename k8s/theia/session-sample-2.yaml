@@ -3,9 +3,18 @@ kind: Session
 metadata:
   name: demo-session-uid
   namespace: default
+  labels:
+    app: theia
+    session-name: demo-session-uid
+  annotations:
+    kubernetes.io/ingress-bandwidth: "2000k"
+    kubernetes.io/egress-bandwidth: "1000k"
 spec:
   name: demo-session-uid
-  workspace: demo-ws
-  appDefinition: sample-app
   user: bartu
-  sessionSecret: super-secret-456
+  workspace: demo-ws-2
+  appDefinition: sample-app
+  sessionSecret: "super-secret-123"
+  envVars:
+    FAVORITE_COLOR: "blue"
+    THEIA_CUSTOM_MESSAGE: "Hello from Session 2"
