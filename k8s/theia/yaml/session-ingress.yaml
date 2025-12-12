@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  creationTimestamp: "2025-12-09T04:24:43Z"
+  generation: 1
+  labels:
+    app: theia
+    session-name: demo-session-henkan-env
+  name: theia-demo-session-henkan-env
+  namespace: default
+  ownerReferences:
+    - apiVersion: example.suleyman.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Session
+      name: demo-session-henkan-env
+      uid: 7429dc07-4309-4b19-9b10-64fd7ae8b65f
+  resourceVersion: "1275631"
+  uid: 2601e748-f439-4b05-9709-765e150db1c8
+spec:
+  rules:
+    - host: theia.localtest.me
+      http:
+        paths:
+          - backend:
+              service:
+                name: theia-demo-session-henkan-env
+                port:
+                  number: 3000
+            path: /7429dc07-4309-4b19-9b10-64fd7ae8b65f/
+            pathType: Prefix
+status:
+  loadBalancer: {}

@@ -1,0 +1,329 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: henkan-designer/conversion-webhook-certificate
+  creationTimestamp: "2025-08-21T18:09:49Z"
+  generation: 2
+  name: appdefinitions.theia.cloud
+  resourceVersion: "87158"
+  uid: 6ac0c403-a670-4483-b8a5-a99444f98a97
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUU3akNDQXRhZ0F3SUJBZ0lVRkQ0R0hYUERqZjRJa3k5amhJdzg1MGErSnJ3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd0lERWVNQndHQTFVRUF3d1ZSMnh2WW1Gc1RXRnJjMmx0ZFcwZ1UybG5ibVZ5TUI0WERUSXlNREV3TXpFMApOVEUxT1ZvWERUTXlNREV3TVRFME5URTFPVm93SURFZU1Cd0dBMVVFQXd3VlIyeHZZbUZzVFdGcmMybHRkVzBnClUybG5ibVZ5TUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUFwdGxwS1hpbm5ERDkKbTk1dVh5QW5rVkRZWFhKeXVjN0ZkcWVRU1NRSzlBazRwSnFwUUJLaEtUY3N0MS9JWERoNXlTVzlsSCs4QmIrZQpHTFlJQ1QrL1R6TkVMYit2aW9iMlRtY3dsYS9Obi9TdysrcTQ5ZTBtaGw4YkUrOFQzbm04QWxKK2lEbXRzRndxCjhzYjBhMGNrWHZFeXFFQjY2eTYycXRGVE4vZkljK0dyekhpakhYZkMyRzBLT05ET2tqL3pSN2ozMjNYQUh4aFYKVjV5cGQ3d2t1UzlMS0NNRWU4K1dGMFFDWjlzcnYvRzEyR21uTVRvdk82NXpzRjF0OVdrQkVucWhIaG1WbmVWNwpTdm5UMlY0SWxGYzhSYVNvcjRRMktreHRmU3ZHVXJVTjdObWJCUWQ3VHd6RmY0NDZRRUJicUhJSnBEdWFRWjJwCm91S0hGSC9FQm5LZXdub042V04vbHgyMlNoU0hJbGcvaEdQaGhRQ1dsZzNBUXFiOEoxYW0rdWJPYllRSkM4S1YKQWp1anZ6YUNneWNzZThvejl0ZDhjblpFT2ZnRHJsdEVxL21tM2Z2SjA2dWlMNGU5cmFtTWtMditRSHpsQUFJRgoxM3ZxT1JyTlhaOW9qQ0F1bjY3R2VWVmx3azZrbXNyanVOVjdscTBSTlh0QlZ1QTJlcG53aTJzZW9KWU11NVlzCnE0WElsOU1sNXArRTl1WktHd1BiemFpSkkyN1RreFpQOGFDcEl4c2VVVzVKOTlBVlZjYm54bjI5bVgxWG5UMXAKdk9GazFLVXNmNEhQT2VEK1Q4SmtmV1dDcW1LS09zZXFGeVVrVitUSTlqMUhUTU41Z1VYWCttQUpORUk4RVpoMwpsT3dDSVJrbk5mWGRkbDF3Sy9PWWRGQjgzbjVqWWtVQ0F3RUFBYU1nTUI0d0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QUxCZ05WSFE4RUJBTUNBWVl3RFFZSktvWklodmNOQVFFTEJRQURnZ0lCQUJxVGhLVU15eEJnQU9ULzEyMmwKbmhJUHRiOFQyYkZpemJ4Ujlrczk0MHBjL0QzaXprMnZWZnRpc2xuSTNUbTNHR0IvTGNGdHB0dFJyUk1qQnRpNQoxVldJdWkvNXlWSnVORER3THNjZHVYd3d3QnB3SmxVMkFQbitIWlNJM0llbDV0aEkvbEVYNWNEZHN3c2RkcCt4CjY3c1pJZXRyaXA3dmJwOTJtTEkxYWVVcTE1M3dlcUJNclZHb2dKM1lkQThNMS8zQzdQekUwcXREV1BsRW0zQVAKWHdFeXJoc2IyVnFiTVFFS3h1MndDMjE0czFrcGV2bEZoa0ZzdWJIOTRqYVQ3RTNNKzRjQTlFK2c5OENmRmNWawoybmJlekdQaFozQUEvME5uM2phRE0zRmNCV0o3THZNZ21jZHFRbkVYVHpBMTc2T1c0RmhFMUY2dUFvS0ZxSldyCm1YdVE3ekpubHh1dVdtMkE2MGVzdklkYkxOOGZJaWE4UjF5aHlUWkpYd0cyMkdxa3BBcWVnN2tMWFVrdE5lbGIKejlYak5qS08vdFo3dzdiUC9OQktjT080ZStSKzRuUmw0US94VXVpdEFsbjRuRFJsYVArRmw4YkE0U3ZnMzg4aQpkYkYrMmZ1NlpwYVNuTGY5YXMwVm1nNXFuQjZhc1NnbEF0QUNyL0pVMVBmNTZOQllqUDk3Sk9JbDM1YTh4anNzCklhcFZpR1JpUmtNdFJyT2RmeHczL1E1d2I0V3NQOCtQOEtlQWZyQWIrSUYzNDFTQWkvUStmQ1ZNZ2NNek82dm8KUVNSWERVU3Z3SGRWa1JwTElmcFhkNlE2bXVLME1PSElMSGJyQ2U0VHoxc0VyYjhxQzA1aklGMHhNa29VeHFNTQpCMC94YmdMeG55WGpqN1h6R1lOMGxkbjEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+        service:
+          name: conversion-webhook-service
+          namespace: henkan-designer
+          path: /convert/appdefinition
+          port: 443
+      conversionReviewVersions:
+        - v1
+  group: theia.cloud
+  names:
+    kind: AppDefinition
+    listKind: AppDefinitionList
+    plural: appdefinitions
+    shortNames:
+      - appdef
+      - ad
+    singular: appdefinition
+  scope: Namespaced
+  versions:
+    - name: v1beta10
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                downlinkLimit:
+                  type: integer
+                image:
+                  type: string
+                imagePullPolicy:
+                  enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                  type: string
+                ingressname:
+                  type: string
+                limitsCpu:
+                  type: string
+                limitsMemory:
+                  type: string
+                maxInstances:
+                  type: integer
+                minInstances:
+                  type: integer
+                monitor:
+                  properties:
+                    activityTracker:
+                      properties:
+                        notifyAfter:
+                          type: integer
+                        timeoutAfter:
+                          type: integer
+                      type: object
+                    port:
+                      type: integer
+                  type: object
+                mountPath:
+                  type: string
+                name:
+                  pattern: ^[a-z0-9A-Z-_]+$
+                  type: string
+                options:
+                  additionalProperties:
+                    x-kubernetes-int-or-string: true
+                  type: object
+                port:
+                  maximum: 65535
+                  minimum: 0
+                  type: integer
+                pullSecret:
+                  type: string
+                requestsCpu:
+                  type: string
+                requestsMemory:
+                  type: string
+                timeout:
+                  type: integer
+                uid:
+                  type: integer
+                uplinkLimit:
+                  type: integer
+              required:
+                - name
+                - image
+                - uid
+                - port
+                - ingressname
+                - minInstances
+                - maxInstances
+                - requestsCpu
+                - requestsMemory
+                - limitsMemory
+                - limitsCpu
+              type: object
+              x-kubernetes-validations:
+                - message: minInstances should be less or equal than maxInstances.
+                  rule: self.minInstances <= self.maxInstances
+            status:
+              properties:
+                operatorMessage:
+                  type: string
+                operatorStatus:
+                  type: string
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    - name: v1beta9
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                downlinkLimit:
+                  type: integer
+                image:
+                  type: string
+                imagePullPolicy:
+                  enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                  type: string
+                ingressname:
+                  type: string
+                limitsCpu:
+                  type: string
+                limitsMemory:
+                  type: string
+                maxInstances:
+                  type: integer
+                minInstances:
+                  type: integer
+                monitor:
+                  properties:
+                    activityTracker:
+                      properties:
+                        notifyAfter:
+                          type: integer
+                        timeoutAfter:
+                          type: integer
+                      type: object
+                    port:
+                      type: integer
+                  type: object
+                mountPath:
+                  type: string
+                name:
+                  pattern: ^[a-z0-9A-Z-_]+$
+                  type: string
+                port:
+                  maximum: 65535
+                  minimum: 0
+                  type: integer
+                pullSecret:
+                  type: string
+                requestsCpu:
+                  type: string
+                requestsMemory:
+                  type: string
+                timeout:
+                  type: integer
+                uid:
+                  type: integer
+                uplinkLimit:
+                  type: integer
+              required:
+                - name
+                - image
+                - uid
+                - port
+                - ingressname
+                - minInstances
+                - maxInstances
+                - requestsCpu
+                - requestsMemory
+                - limitsMemory
+                - limitsCpu
+              type: object
+              x-kubernetes-validations:
+                - message: minInstances should be less or equal than maxInstances.
+                  rule: self.minInstances <= self.maxInstances
+            status:
+              properties:
+                operatorMessage:
+                  type: string
+                operatorStatus:
+                  type: string
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: false
+      subresources:
+        status: {}
+    - name: v1beta8
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                downlinkLimit:
+                  type: integer
+                image:
+                  type: string
+                imagePullPolicy:
+                  enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                  type: string
+                ingressname:
+                  type: string
+                limitsCpu:
+                  type: string
+                limitsMemory:
+                  type: string
+                maxInstances:
+                  type: integer
+                minInstances:
+                  type: integer
+                monitor:
+                  properties:
+                    activityTracker:
+                      properties:
+                        notifyAfter:
+                          type: integer
+                        timeoutAfter:
+                          type: integer
+                      type: object
+                    port:
+                      type: integer
+                  type: object
+                mountPath:
+                  type: string
+                name:
+                  type: string
+                port:
+                  type: integer
+                pullSecret:
+                  type: string
+                requestsCpu:
+                  type: string
+                requestsMemory:
+                  type: string
+                timeout:
+                  properties:
+                    limit:
+                      type: integer
+                    strategy:
+                      type: string
+                  type: object
+                uid:
+                  type: integer
+                uplinkLimit:
+                  type: integer
+              type: object
+            status:
+              properties:
+                operatorMessage:
+                  type: string
+                operatorStatus:
+                  type: string
+              type: object
+          type: object
+      served: true
+      storage: false
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: AppDefinition
+    listKind: AppDefinitionList
+    plural: appdefinitions
+    shortNames:
+      - appdef
+      - ad
+    singular: appdefinition
+  conditions:
+    - lastTransitionTime: "2025-08-21T18:09:49Z"
+      message: no conflicts found
+      reason: NoConflicts
+      status: "True"
+      type: NamesAccepted
+    - lastTransitionTime: "2025-08-21T18:09:50Z"
+      message: the initial names have been accepted
+      reason: InitialNamesAccepted
+      status: "True"
+      type: Established
+  storedVersions:
+    - v1beta10

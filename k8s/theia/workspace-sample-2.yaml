@@ -7,5 +7,5 @@ spec:
   name: demo-ws-2
   label: Bartu second workspace
   appDefinition: sample-app
-  storage: 5Gi
+  storage: pvc_name
   user: bartu

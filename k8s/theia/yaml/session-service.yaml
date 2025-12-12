@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2025-12-09T04:24:43Z"
+  labels:
+    app: theia
+    app.kubernetes.io/component: session
+    app.kubernetes.io/part-of: theia-cloud
+    session-name: demo-session-henkan-env
+    theia-cloud.io/app-definition: sample-app
+    theia-cloud.io/session: demo-session-henkan-env
+    theia-cloud.io/session-uuid: 7429dc07-4309-4b19-9b10-64fd7ae8b65f
+    theia-cloud.io/user: bartu
+  name: theia-demo-session-henkan-env
+  namespace: default
+  ownerReferences:
+    - apiVersion: example.suleyman.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Session
+      name: demo-session-henkan-env
+      uid: 7429dc07-4309-4b19-9b10-64fd7ae8b65f
+  resourceVersion: "1275625"
+  uid: a7991b82-0d41-474d-aa4a-e18d8e7c2f13
+spec:
+  clusterIP: 10.99.166.227
+  clusterIPs:
+    - 10.99.166.227
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+      targetPort: web
+    - name: metrics
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: theia
+    session-name: demo-session-henkan-env
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

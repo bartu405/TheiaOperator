@@ -56,12 +56,11 @@ class AppDefinition :
 // ===== Workspace =====
 
 class WorkspaceSpec {
-    var name: String? = null              // required by CRD
-    var label: String? = null             // optional
-    var appDefinition: String? = null     // optional in CRD
-    var user: String? = null              // required by CRD
-    var storage: String? = null           // optional
-    var options: Map<String, String>? = null // matches x-kubernetes-int-or-string
+    var name: String? = null
+    var label: String? = null
+    var appDefinition: String? = null
+    var user: String? = null
+    var storage: String? = null
 }
 
 class VolumeStatus(
@@ -91,14 +90,13 @@ class Workspace :
 // ===== Session =====
 
 class SessionSpec {
-    var name: String? = null                 // required by CRD
-    var workspace: String? = null            // workspace name
-    var appDefinition: String? = null        // required by CRD
-    var user: String? = null                 // required by CRD
+    var name: String? = null
+    var workspace: String? = null
+    var appDefinition: String? = null
+    var user: String? = null
 
-    var sessionSecret: String? = null        // optional
+    var sessionSecret: String? = null
 
-    // Matches x-kubernetes-int-or-string, you can keep it as String for simplicity
     var options: Map<String, String>? = null
     var envVars: Map<String, String>? = null
 
@@ -111,7 +109,7 @@ class SessionStatus {
     var operatorMessage: String? = null
     var url: String? = null
     var error: String? = null
-    var lastActivity: Long? = null           // integer in CRD, Long in Kotlin
+    var lastActivity: Long? = null
 }
 
 @Group("example.suleyman.io")

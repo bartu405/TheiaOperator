@@ -20,9 +20,3 @@ spec:
   envVars:
     FAVORITE_COLOR: blue
     THEIA_CUSTOM_MESSAGE: "Hello from Session"
-
-  # If you want to include these (optional):
-  envVarsFromConfigMaps:
-      - demo-env-cm
-  envVarsFromSecrets:
-      - demo-env-secret

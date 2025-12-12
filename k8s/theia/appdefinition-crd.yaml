@@ -15,7 +15,7 @@ spec:
       - appdef
       - ad
   versions:
-    - name: v1      # your version name, but schema copied from v1beta10
+    - name: v1
       served: true
       storage: true
       subresources:

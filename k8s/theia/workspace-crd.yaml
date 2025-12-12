@@ -44,19 +44,15 @@ spec:
                 user:
                   type: string
 
-                # Storage size / class – modeled after theia.cloud,
-                # but extended a bit for your use case.
+                # name of the PVC that backs this workspace
                 storage:
-                  type: string    # e.g. "5Gi"
+                  type: string
 
-                # Arbitrary additional options, same pattern as theia.cloud
-                options:
-                  type: object
-                  additionalProperties:
-                    x-kubernetes-int-or-string: true
               required:
                 - name
                 - user
+                - appDefinition
+                - storage
             status:
               type: object
               properties:

@@ -94,7 +94,6 @@ class SessionReconciler(
 
 
         // --- 1.6) Optional: max sessions per user (SESSIONS_PER_USER)
-        val sessionsPerUser = System.getenv("SESSIONS_PER_USER")?.toIntOrNull()
 
         if (sessionsPerUser != null && sessionsPerUser > 0) {
             val allUserSessions = client.resources(Session::class.java)
@@ -161,6 +160,16 @@ class SessionReconciler(
             .get()
             ?: return failStatus(resource, "Workspace '$nonNullWorkspaceName' not found in '$ns'")
 
+        // --- 2.5.1) Workspace must have a storage PVC name
+        val workspacePvcName = workspace.spec?.storage
+        if (workspacePvcName.isNullOrBlank()) {
+            return failStatus(
+                resource,
+                "Workspace '$nonNullWorkspaceName' has no spec.storage (PVC name)"
+            )
+        }
+
+
         // --- 2.6) Ensure Session has ownerRef = Workspace
         val meta = resource.metadata
         val existingRefs = meta.ownerReferences ?: emptyList()
@@ -188,11 +197,11 @@ class SessionReconciler(
         val sessLabels = (sessMeta.labels ?: mutableMapOf()).toMutableMap()
 
         val wsSpec = workspace.spec
-        val projectNameRaw = wsSpec?.label ?: wsSpec?.options?.get("henkanProjectName")?.toString()
+        val projectNameRaw = wsSpec?.label
 
-        val workspaceNameLabel = toLabelValue(nonNullWorkspaceName)
-        val workspaceUserLabel = toLabelValue(user)
-        val projectNameLabel   = toLabelValue(projectNameRaw)
+        val workspaceNameLabel = toHenkanLabelValue(nonNullWorkspaceName)
+        val workspaceUserLabel = toHenkanLabelValue(user)
+        val projectNameLabel   = toHenkanLabelValue(projectNameRaw)
 
         workspaceNameLabel?.let { sessLabels["app.henkan.io/workspaceName"] = it }
         workspaceUserLabel?.let { sessLabels["app.henkan.io/workspaceUser"] = it }
@@ -327,7 +336,8 @@ class SessionReconciler(
             appDefinitionName = nonNullAppDefName,
             user = user,
             sessionUid = sessionUid,
-            owner = resource
+            owner = resource,
+            pvcName = workspacePvcName,
         )
 
         ensureTheiaService(
@@ -352,28 +362,15 @@ class SessionReconciler(
 
 
         // --- 6) Status on success
-        val nowSeconds = System.currentTimeMillis() / 1000
+        val nowMillis = System.currentTimeMillis()
 
         status.operatorStatus = "HANDLED"
         status.operatorMessage = "Session is running"
         status.url = sessionUrlForStatus
         status.error = null
-        status.lastActivity = nowSeconds
+        status.lastActivity = nowMillis
 
         return UpdateControl.patchStatus(resource)
-    }
-
-
-    fun toLabelValue(raw: String?): String? {
-        if (raw.isNullOrBlank()) return null
-
-        val trimmed = raw.trim().lowercase()
-        val mapped = trimmed.map { ch ->
-            if (ch.isLetterOrDigit() || ch == '-' || ch == '_' || ch == '.') ch else '-'
-        }.joinToString("")
-
-        val cleaned = mapped.trim('-', '_', '.')
-        return if (cleaned.isBlank()) null else cleaned
     }
 
 
@@ -413,10 +410,10 @@ class SessionReconciler(
         appDefinitionName: String,
         user: String,
         sessionUid: String,
-        owner: Session
+        owner: Session,
+        pvcName: String,
     ) {
         val deploymentName = "theia-$sessionName"
-        val pvcName = "workspace-$workspaceName"
 
         log.info("Ensuring Deployment {} in ns {} using PVC {}", deploymentName, namespace, pvcName)
 
@@ -449,8 +446,6 @@ class SessionReconciler(
                 "oauth2ProxyConfigMapName" to "theia-oauth2-proxy-config",
                 "oauth2TemplatesConfigMapName" to "oauth2-templates",
                 "oauth2EmailsConfigMapName" to "theia-oauth2-emails",
-                "downlinkLimit" to downlinkLimit,
-                "uplinkLimit" to uplinkLimit,
                 "downlinkLimit" to downlinkLimit,
                 "uplinkLimit" to uplinkLimit,
                 "appDefinitionName" to appDefinitionName,

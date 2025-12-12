@@ -1,0 +1,256 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    cni.projectcalico.org/containerID: f887edb7c387ba05b5ac40c90237b1110f3dce1273045f9ab7371f3b4d901d88
+    cni.projectcalico.org/podIP: 10.42.0.196/32
+    cni.projectcalico.org/podIPs: 10.42.0.196/32
+  creationTimestamp: "2025-12-09T01:48:48Z"
+  generateName: session-bartu-henkan-designer-8c29c58e895b-55776f75dd-
+  labels:
+    app: bartu-bartu-test-feb90431-7568-4da4-861e-8c29c58e895b
+    app.kubernetes.io/component: session
+    app.kubernetes.io/part-of: theia-cloud
+    pod-template-hash: 55776f75dd
+    theia-cloud.io/app-definition: henkan-designer
+    theia-cloud.io/session: bartu-bartu-test
+    theia-cloud.io/user: bartu
+  name: session-bartu-henkan-designer-8c29c58e895b-55776f75dd-wh7s8
+  namespace: henkan-designer
+  ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: session-bartu-henkan-designer-8c29c58e895b-55776f75dd
+      uid: 3d5a8d33-a9cb-4d9a-bed5-130d9f633f16
+  resourceVersion: "71163011"
+  uid: 460da5f5-bd45-43b9-807a-e0f400fcfdfd
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - args:
+        - --config=/etc/oauth2-proxy.cfg
+        - --authenticated-emails-file=/emails/authenticated-emails-list
+        - --gcp-healthchecks
+        - --reverse-proxy
+        - --skip-auth-route=/monitor/*
+      image: henkan.azurecr.io/oauth2-proxy/oauth2-proxy:v7.5.1
+      imagePullPolicy: IfNotPresent
+      name: oauth2-proxy
+      ports:
+        - containerPort: 5000
+          name: web
+          protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /etc/oauth2-proxy.cfg
+          name: oauth2-proxy-config
+          subPath: oauth2-proxy.cfg
+        - mountPath: /templates
+          name: oauth2-templates
+        - mountPath: /emails
+          name: oauth2-emails
+    - env:
+        - name: THEIACLOUD_APP_ID
+          value: henkan
+        - name: THEIACLOUD_SERVICE_URL
+          value: https://<nil>
+        - name: THEIACLOUD_SESSION_UID
+          value: feb90431-7568-4da4-861e-8c29c58e895b
+        - name: THEIACLOUD_SESSION_NAME
+          value: bartu-bartu-test
+        - name: THEIACLOUD_SESSION_USER
+          value: bartu
+        - name: THEIACLOUD_SESSION_URL
+          value: https://designer.172.12.2.32.sslip.io/feb90431-7568-4da4-861e-8c29c58e895b/
+        - name: THEIACLOUD_SESSION_SECRET
+          value: henkansecret
+        - name: THEIACLOUD_MONITOR_ENABLE_ACTIVITY_TRACKER
+          value: placeholder-enable-activity-tracker
+        - name: THEIACLOUD_MONITOR_PORT
+          value: placeholder-monitor-env-port
+        - name: THEIACLOUD_KEYCLOAK_URL
+          value: https://keycloak.172.12.2.32.sslip.io/auth/
+        - name: THEIACLOUD_KEYCLOAK_REALM
+          value: henkan
+        - name: THEIACLOUD_KEYCLOAK_CLIENT_ID
+          value: henkan-designer
+        - name: COMMIT_GENAI_ENDPOINT
+          value: https://henkan-genai.172.12.2.32.sslip.io/webhook/6e201b9b-ca39-44d8-9600-70520911ea5c
+        - name: EMAIL
+          value: bartu@globalmaksimum.com
+        - name: GIT_AUTHOR_NAME
+          value: bartu
+        - name: GIT_SSL_NO_VERIFY
+          value: "true"
+        - name: HENKAN_GIT_EMAIL
+          value: bartu@globalmaksimum.com
+        - name: HENKAN_GIT_USER
+          value: bartu
+        - name: HENKAN_META_API_URL
+          value: http://henkan-metaapi.henkan-metaapi
+        - name: HENKAN_PROJECT_GIT_URL
+          value: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
+        - name: HENKAN_PROJECT_NAME
+          value: busra
+      image: henkan.azurecr.io/globalmaksimum/theia-henkan:v2.3.3
+      imagePullPolicy: IfNotPresent
+      name: henkan-designer
+      ports:
+        - containerPort: 3000
+          name: application
+          protocol: TCP
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1200M
+        requests:
+          cpu: 100m
+          memory: 1G
+      securityContext:
+        runAsGroup: 101
+        runAsUser: 101
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /usr/share/henkan/conf/job-types
+          name: jobtypes-config
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: kube-api-access
+          readOnly: true
+        - mountPath: /home/henkan/project
+          name: user-data
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  imagePullSecrets:
+    - name: regcred
+  nodeName: rke2025-01
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext:
+    fsGroup: 101
+  serviceAccount: designer
+  serviceAccountName: designer
+  terminationGracePeriodSeconds: 30
+  tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  volumes:
+    - configMap:
+        defaultMode: 420
+        name: session-proxy-bartu-henkan-desi-8c29c58e895b
+      name: oauth2-proxy-config
+    - configMap:
+        defaultMode: 420
+        name: oauth2-templates
+      name: oauth2-templates
+    - configMap:
+        defaultMode: 420
+        name: jobtypes-config
+      name: jobtypes-config
+    - configMap:
+        defaultMode: 420
+        name: session-email-bartu-henkan-desi-8c29c58e895b
+      name: oauth2-emails
+    - name: kube-api-access
+      projected:
+        defaultMode: 420
+        sources:
+          - serviceAccountToken:
+              expirationSeconds: 3600
+              path: token
+          - configMap:
+              items:
+                - key: ca.crt
+                  path: ca.crt
+              name: kube-root-ca.crt
+          - downwardAPI:
+              items:
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+                  path: namespace
+    - name: user-data
+      persistentVolumeClaim:
+        claimName: ws-bartu-henkan-designer-e970b4e57ee4
+status:
+  conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2025-12-09T01:48:50Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2025-12-09T01:48:48Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2025-12-09T01:48:50Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2025-12-09T01:48:50Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2025-12-09T01:48:48Z"
+      status: "True"
+      type: PodScheduled
+  containerStatuses:
+    - containerID: containerd://6ba113c76da0883a6fb6ae4e2bc94d9ae4bf9bb7e29af85ce2449703c1adcfba
+      image: henkan.azurecr.io/globalmaksimum/theia-henkan:v2.3.3
+      imageID: henkan.azurecr.io/globalmaksimum/theia-henkan@sha256:53d11a139d1bfbe1928760b2d67491184a828c270328c8c56f10a185dcd426f5
+      lastState: {}
+      name: henkan-designer
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2025-12-09T01:48:49Z"
+      volumeMounts:
+        - mountPath: /usr/share/henkan/conf/job-types
+          name: jobtypes-config
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: kube-api-access
+          readOnly: true
+          recursiveReadOnly: Disabled
+        - mountPath: /home/henkan/project
+          name: user-data
+    - containerID: containerd://f387ff787244d7fd453cb6aab39c62c22ad17a875881be630016f801580e51b4
+      image: henkan.azurecr.io/oauth2-proxy/oauth2-proxy:v7.5.1
+      imageID: henkan.azurecr.io/oauth2-proxy/oauth2-proxy@sha256:3c6012940d3cd71ecc67fd7783916df6d27972b520209af36e9567b9bdbc0c79
+      lastState: {}
+      name: oauth2-proxy
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2025-12-09T01:48:48Z"
+      volumeMounts:
+        - mountPath: /etc/oauth2-proxy.cfg
+          name: oauth2-proxy-config
+        - mountPath: /templates
+          name: oauth2-templates
+        - mountPath: /emails
+          name: oauth2-emails
+  hostIP: 172.22.2.39
+  hostIPs:
+    - ip: 172.22.2.39
+  phase: Running
+  podIP: 10.42.0.196
+  podIPs:
+    - ip: 10.42.0.196
+  qosClass: Burstable
+  startTime: "2025-12-09T01:48:48Z"

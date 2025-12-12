@@ -1,0 +1,44 @@
+apiVersion: example.suleyman.io/v1
+kind: Session
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"example.suleyman.io/v1","kind":"Session","metadata":{"annotations":{},"name":"demo-session-henkan-env","namespace":"default"},"spec":{"appDefinition":"sample-app","envVars":{"COMMIT_GENAI_ENDPOINT":"https://henkan-genai.example/webhook/123","EMAIL":"bartu@example.com","GIT_AUTHOR_NAME":"bartu","GIT_SSL_NO_VERIFY":"true","HENKAN_GIT_EMAIL":"bartu@example.com","HENKAN_GIT_USER":"bartu","HENKAN_META_API_URL":"http://henkan-metaapi.henkan-metaapi","HENKAN_PROJECT_GIT_URL":"https://github.com/GlobalMaksimum/henkan-etl-flow-project.git","HENKAN_PROJECT_NAME":"busra"},"name":"demo-session-henkan-env","sessionSecret":"super-secret-999","user":"bartu","workspace":"demo-ws"}}
+  creationTimestamp: "2025-12-09T04:24:40Z"
+  generation: 1
+  labels:
+    app.henkan.io/henkanProjectName: bartu-demo-workspace
+    app.henkan.io/workspaceName: demo-ws
+    app.henkan.io/workspaceUser: bartu
+  name: demo-session-henkan-env
+  namespace: default
+  ownerReferences:
+    - apiVersion: example.suleyman.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Workspace
+      name: demo-ws
+      uid: a738ef70-493f-4df5-9018-4cc787aeda59
+  resourceVersion: "1275633"
+  uid: 7429dc07-4309-4b19-9b10-64fd7ae8b65f
+spec:
+  appDefinition: sample-app
+  envVars:
+    COMMIT_GENAI_ENDPOINT: https://henkan-genai.example/webhook/123
+    EMAIL: bartu@example.com
+    GIT_AUTHOR_NAME: bartu
+    GIT_SSL_NO_VERIFY: "true"
+    HENKAN_GIT_EMAIL: bartu@example.com
+    HENKAN_GIT_USER: bartu
+    HENKAN_META_API_URL: http://henkan-metaapi.henkan-metaapi
+    HENKAN_PROJECT_GIT_URL: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
+    HENKAN_PROJECT_NAME: busra
+  name: demo-session-henkan-env
+  sessionSecret: super-secret-999
+  user: bartu
+  workspace: demo-ws
+status:
+  lastActivity: 1765254283
+  operatorMessage: Session is running
+  operatorStatus: HANDLED
+  url: theia.localtest.me/7429dc07-4309-4b19-9b10-64fd7ae8b65f/

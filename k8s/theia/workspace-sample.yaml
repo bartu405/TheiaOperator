@@ -8,7 +8,5 @@ spec:
   label: "bartu-demo-workspace"
   appDefinition: "sample-app"
   user: "bartu"
-  storage: "5Gi"
-  options:
-    some-flag: "true"
-    max-idle-minutes: "60"
+  storage: "workspace-demo-ws"
+

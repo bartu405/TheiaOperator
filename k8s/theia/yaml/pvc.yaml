@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    pv.kubernetes.io/bind-completed: "yes"
+    pv.kubernetes.io/bound-by-controller: "yes"
+    volume.beta.kubernetes.io/storage-provisioner: docker.io/hostpath
+    volume.kubernetes.io/storage-provisioner: docker.io/hostpath
+  creationTimestamp: "2025-12-09T04:24:42Z"
+  finalizers:
+    - kubernetes.io/pvc-protection
+  labels:
+    app: theia-workspace
+    app.henkan.io/henkanProjectName: bartu-demo-workspace
+    app.henkan.io/workspaceName: demo-ws
+    app.henkan.io/workspaceUser: bartu
+    theia-cloud.io/workspace-name: demo-ws
+    workspace-name: demo-ws
+  name: workspace-demo-ws
+  namespace: default
+  ownerReferences:
+    - apiVersion: example.suleyman.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Workspace
+      name: demo-ws
+      uid: a738ef70-493f-4df5-9018-4cc787aeda59
+  resourceVersion: "1275619"
+  uid: 667c14d5-1d8a-4027-b835-cd2e49bcdcd4
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: hostpath
+  volumeMode: Filesystem
+  volumeName: pvc-667c14d5-1d8a-4027-b835-cd2e49bcdcd4
+status:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 5Gi
+  phase: Bound

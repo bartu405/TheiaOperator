@@ -54,23 +54,40 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-// --- Henkan-style labels on Workspace CR itself ---
-// We derive:
-//   app.henkan.io/henkanProjectName  <- slug(spec.label OR spec.options["henkanProjectName"])
-//   app.henkan.io/workspaceName      <- slug(spec.name)
-//   app.henkan.io/workspaceUser      <- slug(spec.user)
+        // Validate required CRD fields: spec.name, spec.user, spec.appDefinition, spec.storage
+
+        if (spec.appDefinition.isNullOrBlank()) {
+            status.operatorStatus = "Error"
+            status.operatorMessage = "spec.appDefinition is required"
+            status.error = "spec.appDefinition must be set"
+            return UpdateControl.patchStatus(resource)
+        }
+
+        if (spec.storage.isNullOrBlank()) {
+            status.operatorStatus = "Error"
+            status.operatorMessage = "spec.storage is required"
+            status.error = "spec.storage must be set"
+            return UpdateControl.patchStatus(resource)
+        }
+
+
+        // --- Henkan-style labels on Workspace CR itself ---
+        // We derive:
+        //   app.henkan.io/henkanProjectName  <- slug(spec.label OR spec.options["henkanProjectName"])
+        //   app.henkan.io/workspaceName      <- slug(spec.name)
+        //   app.henkan.io/workspaceUser      <- slug(spec.user)
         val meta = resource.metadata!!
         val labels = (meta.labels ?: mutableMapOf()).toMutableMap()
 
-// raw values from spec
-        val projectNameRaw = spec.label ?: spec.options?.get("henkanProjectName")?.toString()
+        // raw values from spec
+        val projectNameRaw = spec.label
         val workspaceNameRaw = spec.name!!
         val workspaceUserRaw = spec.user!!
 
-// turn them into valid label values
-        val projectNameLabel = toLabelValue(projectNameRaw)
-        val workspaceNameLabel = toLabelValue(workspaceNameRaw)
-        val workspaceUserLabel = toLabelValue(workspaceUserRaw)
+        // turn them into valid label values
+        val projectNameLabel = toHenkanLabelValue(projectNameRaw)
+        val workspaceNameLabel = toHenkanLabelValue(workspaceNameRaw)
+        val workspaceUserLabel = toHenkanLabelValue(workspaceUserRaw)
 
         if (!workspaceNameLabel.isNullOrBlank()) {
             labels["app.henkan.io/workspaceName"] = workspaceNameLabel
@@ -125,39 +142,47 @@ class WorkspaceReconciler(
 
         // 1) Ensure PVC exists (it will be owned by this Workspace)
         val volumeStatus = ensurePvc(resource)
-        status.volumeClaim = volumeStatus
 
-        // 2) Set high-level operator status
-        status.error = null
-        status.operatorStatus = "HANDLED"
-        status.operatorMessage = "Workspace reconciled successfully"
+        // Map internal PVC result to Henkan-style status fields
+        if (volumeStatus.status == "Created" || volumeStatus.status == "Exists") {
+            // Successful PVC state -> Henkan-style "finished"
+            status.volumeClaim = VolumeStatus(
+                status = "finished",
+                message = ""
+            )
+            status.volumeAttach = VolumeStatus(
+                status = "finished",
+                message = ""
+            )
+            status.error = null
+            status.operatorStatus = "HANDLED"
+            status.operatorMessage = "Workspace reconciled successfully"
+        } else {
+            // Error-ish PVC state, propagate details
+            status.volumeClaim = volumeStatus
+            status.volumeAttach = VolumeStatus(
+                status = "Error",
+                message = "PVC not ready: ${volumeStatus.message}"
+            )
+            status.operatorStatus = "Error"
+            status.operatorMessage = "Failed to reconcile workspace PVC: ${volumeStatus.message}"
+            status.error = volumeStatus.message
+        }
+
+// 2) Return status patch
+        return UpdateControl.patchStatus(resource)
+
+
+
 
         return UpdateControl.patchStatus(resource)
-    }
-
-    private fun toLabelValue(raw: String?): String? {
-        if (raw.isNullOrBlank()) return null
-
-        // trim & lowercase
-        val trimmed = raw.trim().lowercase()
-
-        // replace any invalid char with '-'
-        val mapped = trimmed.map { ch ->
-            if (ch.isLetterOrDigit() || ch == '-' || ch == '_' || ch == '.') ch else '-'
-        }.joinToString("")
-
-        // remove leading/trailing non-alphanumeric (could be -, _ or .)
-        val cleaned = mapped.trim('-', '_', '.')
-
-        return if (cleaned.isBlank()) null else cleaned
     }
 
     /**
      * Ensure a PVC exists for this workspace.
      * Uses:
      *   - spec.name -> workspace name (for PVC name)
-     *   - spec.storage -> size (default to "5Gi" if null)
-     *   - spec.options["storageClassName"] (optional) for storage class
+     *   - spec.storage -> PVC name (required)
      */
     private fun ensurePvc(ws: Workspace): VolumeStatus {
         val wsMeta = ws.metadata ?: return VolumeStatus(
@@ -170,27 +195,31 @@ class WorkspaceReconciler(
             message = "Workspace metadata.name is missing"
         )
         val ns = wsMeta.namespace ?: "default"
-        val pvcName = "workspace-$wsName"
+        val spec = ws.spec
+        val pvcName = spec?.storage ?: return VolumeStatus(
+            status = "Error",
+            message = "Workspace spec.storage (PVC name) is missing"
+        )
 
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
 
-        // Determine requested size (from spec.storage)
-        val spec = ws.spec
-        val size = spec?.storage ?: "5Gi" // sensible default
-        // Optional: storageClassName from options["storageClassName"]
-        val storageClassName = spec?.options?.get("storageClassName")
+        // For now, we just use a fixed default size.
+        // Later we can wire this from AppDefinition or elsewhere.
+        val size = "5Gi"
+
+        // No more options; storageClassName can be wired later if needed.
+        val storageClassName: String? = null
 
         // --- Henkan-style label values derived from Workspace spec ---
         val workspaceNameRaw = spec?.name
         val workspaceUserRaw = spec?.user
         val projectNameRaw = spec?.label
-            ?: spec?.options?.get("henkanProjectName")?.toString()
 
         // sanitize to valid label values
-        val workspaceNameLabel = toLabelValue(workspaceNameRaw) ?: workspaceNameRaw
-        val workspaceUserLabel = toLabelValue(workspaceUserRaw) ?: workspaceUserRaw
-        val projectNameLabel = toLabelValue(projectNameRaw)
+        val workspaceNameLabel = toHenkanLabelValue(workspaceNameRaw) ?: workspaceNameRaw
+        val workspaceUserLabel = toHenkanLabelValue(workspaceUserRaw) ?: workspaceUserRaw
+        val projectNameLabel = toHenkanLabelValue(projectNameRaw)
 
         if (existing != null) {
             val wsUid = ws.metadata?.uid

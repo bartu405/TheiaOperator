@@ -1,0 +1,38 @@
+apiVersion: example.suleyman.io/v1
+kind: Workspace
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"example.suleyman.io/v1","kind":"Workspace","metadata":{"annotations":{},"name":"demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","label":"bartu-demo-workspace","name":"demo-ws","options":{"max-idle-minutes":"60","some-flag":"true"},"storage":"5Gi","user":"bartu"}}
+  creationTimestamp: "2025-12-09T04:24:40Z"
+  generation: 1
+  labels:
+    app.henkan.io/henkanProjectName: bartu-demo-workspace
+    app.henkan.io/workspaceName: demo-ws
+    app.henkan.io/workspaceUser: bartu
+  name: demo-ws
+  namespace: default
+  ownerReferences:
+    - apiVersion: example.suleyman.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: AppDefinition
+      name: sample-app
+      uid: f0bd7206-d5e6-4df2-b1db-17c7bf495596
+  resourceVersion: "1275614"
+  uid: a738ef70-493f-4df5-9018-4cc787aeda59
+spec:
+  appDefinition: sample-app
+  label: bartu-demo-workspace
+  name: demo-ws
+  options:
+    max-idle-minutes: "60"
+    some-flag: "true"
+  storage: 5Gi
+  user: bartu
+status:
+  operatorMessage: Workspace reconciled successfully
+  operatorStatus: HANDLED
+  volumeClaim:
+    message: PVC 'workspace-demo-ws' created in namespace 'default' with size '5Gi'
+    status: Created
