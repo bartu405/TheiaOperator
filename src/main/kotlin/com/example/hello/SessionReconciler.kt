@@ -26,8 +26,10 @@ class SessionReconciler(
 
     companion object {
         const val FINALIZER_NAME = "sessions.example.suleyman.io/finalizer"
-        private const val SHARED_INGRESS_NAME = "theia"
         private const val SERVICE_PORT_NAME = "http" // must match Service port name
+        // One shared Ingress per AppDefinition, like Henkan
+        fun ingressNameForAppDef(appDefName: String): String =
+            "theia-${appDefName}-ingress"   // you can change pattern if you want
     }
 
     private val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
@@ -333,8 +335,14 @@ class SessionReconciler(
             sessionUid = sessionUid
         )
 
-        // NEW: shared Ingress with per-session path
-        ensureSharedIngressForSession(resource, serviceName)
+        val ingressName = ingressNameForAppDef(nonNullAppDefName)
+        ensureSharedIngressForSession(
+            session = resource,
+            serviceName = serviceName,
+            ingressName = ingressName,
+            appDef = appDef
+        )
+
 
         // --- 6) Status on success
         val nowMillis = System.currentTimeMillis()
@@ -352,21 +360,31 @@ class SessionReconciler(
         val ns = resource.metadata?.namespace ?: "default"
         val name = resource.metadata?.name ?: "<no-name>"
 
+        val appDefName = resource.spec?.appDefinition
+        if (appDefName.isNullOrBlank()) {
+            log.warn(
+                "Session {}/{} has no spec.appDefinition, cannot determine shared Ingress name, skipping ingress cleanup",
+                ns, name
+            )
+            return DeleteControl.defaultDelete()
+        }
+
+        val ingressName = ingressNameForAppDef(appDefName)
         val host = sessionHost(resource)
         val path = sessionPath(resource)
 
         log.info(
             "Running cleanup for Session {}/{}: removing path {} on host {} from shared Ingress '{}'",
-            ns, name, path, host, SHARED_INGRESS_NAME
+            ns, name, path, host, ingressName
         )
 
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
-        val ingress = ingressClient.withName(SHARED_INGRESS_NAME).get()
+        val ingress = ingressClient.withName(ingressName).get()
 
         if (ingress == null) {
             log.info(
                 "Shared Ingress '{}' not found in namespace {}, nothing to cleanup",
-                SHARED_INGRESS_NAME, ns
+                ingressName, ns
             )
             return DeleteControl.defaultDelete()
         }
@@ -387,15 +405,15 @@ class SessionReconciler(
                     changed = true
                     log.info(
                         "Removed path {} for Session {}/{} from Ingress '{}' rule host {}",
-                        path, ns, name, SHARED_INGRESS_NAME, host
+                        path, ns, name, ingressName, host
                     )
                 }
 
                 if (filteredPaths.isEmpty()) {
-                    // Drop entire rule if no paths left
+                    // Drop entire rule if no paths left for this host
                     log.info(
                         "No more paths for host {} on Ingress '{}', dropping rule",
-                        host, SHARED_INGRESS_NAME
+                        host, ingressName
                     )
                     null
                 } else {
@@ -408,25 +426,19 @@ class SessionReconciler(
         if (!changed) {
             log.info(
                 "No matching path {} on host {} in Ingress '{}', nothing to change",
-                path, host, SHARED_INGRESS_NAME
+                path, host, ingressName
             )
             return DeleteControl.defaultDelete()
         }
 
-        if (newRules.isEmpty()) {
-            log.info(
-                "Ingress '{}' in namespace {} has no rules left after cleanup, deleting it",
-                SHARED_INGRESS_NAME, ns
-            )
-            ingressClient.withName(SHARED_INGRESS_NAME).delete()
-        } else {
-            builder.editOrNewSpec().withRules(newRules).endSpec()
-            ingressClient.resource(builder.build()).createOrReplace()
-        }
+        // IMPORTANT difference from before: we DO NOT delete the Ingress when newRules is empty.
+        builder.editOrNewSpec().withRules(newRules).endSpec()
+        ingressClient.resource(builder.build()).createOrReplace()
 
-        // Tell SDK: finalizer work is done, safe to remove finalizer
+        // Finalizer work done
         return DeleteControl.defaultDelete()
     }
+
 
     // === Helpers for URL/paths =============================================================
 
@@ -573,24 +585,29 @@ class SessionReconciler(
 
     private fun ensureSharedIngressForSession(
         session: Session,
-        serviceName: String
+        serviceName: String,
+        ingressName: String,
+        appDef: AppDefinition
     ) {
         val ns = session.metadata?.namespace ?: "default"
         val host = sessionHost(session)
         val path = sessionPath(session)
 
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
-        val existing = ingressClient.withName(SHARED_INGRESS_NAME).get()
+        val existing = ingressClient.withName(ingressName).get()
 
         if (existing == null) {
             log.info(
                 "Shared Ingress '{}' not found in {}, creating new with path {} -> service {}",
-                SHARED_INGRESS_NAME, ns, path, serviceName
+                ingressName, ns, path, serviceName
             )
+
             val ingress = IngressBuilder()
                 .withNewMetadata()
-                .withName(SHARED_INGRESS_NAME)
+                .withName(ingressName)
                 .addToLabels("app", "theia")
+                // IMPORTANT: owner is the AppDefinition now
+                .withOwnerReferences(controllerOwnerRef(appDef))
                 .endMetadata()
                 .withNewSpec()
                 .addNewRule()
@@ -615,16 +632,15 @@ class SessionReconciler(
             return
         }
 
-        // Update existing shared Ingress
+        // Update existing shared Ingress for this AppDefinition
         val ingress = IngressBuilder(existing).build()
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
 
         val ruleIndex = rules.indexOfFirst { it.host == host }
         if (ruleIndex == -1) {
-            // new rule for host
             log.info(
                 "Adding new host rule {} with path {} -> {} to Ingress '{}'",
-                host, path, serviceName, SHARED_INGRESS_NAME
+                host, path, serviceName, ingressName
             )
             val newRule = IngressRuleBuilder()
                 .withHost(host)
@@ -643,7 +659,6 @@ class SessionReconciler(
                 .build()
             rules.add(newRule)
         } else {
-            // update existing host rule
             val rule = rules[ruleIndex]
             val http = rule.http
             val paths = http?.paths?.toMutableList() ?: mutableListOf()
@@ -652,7 +667,7 @@ class SessionReconciler(
             if (existingPathIndex == -1) {
                 log.info(
                     "Adding new path {} -> {} under host {} to Ingress '{}'",
-                    path, serviceName, host, SHARED_INGRESS_NAME
+                    path, serviceName, host, ingressName
                 )
                 val newPath = HTTPIngressPathBuilder()
                     .withPath(path)
@@ -668,7 +683,7 @@ class SessionReconciler(
             } else {
                 log.info(
                     "Updating existing path {} under host {} in Ingress '{}' to point to {}",
-                    path, host, SHARED_INGRESS_NAME, serviceName
+                    path, host, ingressName, serviceName
                 )
                 val existingPath = paths[existingPathIndex]
                 existingPath.backend?.service?.name = serviceName
@@ -682,4 +697,5 @@ class SessionReconciler(
         ingress.spec?.setRules(rules)
         ingressClient.resource(ingress).createOrReplace()
     }
+
 }
