@@ -17,6 +17,7 @@ fun main() {
     operator.register(WorkspaceReconciler(client))
     operator.register(SessionReconciler(client))
 
+    SessionTimeoutReaper(client).start()
 
     operator.start()
     Thread.currentThread().join()

@@ -27,7 +27,6 @@ class AppDefinitionSpec {
     var uplinkLimit: Int? = null
     var mountPath: String? = null
     var monitor: MonitorSpec? = null
-    var options: Map<String, Any>? = null
 }
 
 class MonitorSpec {

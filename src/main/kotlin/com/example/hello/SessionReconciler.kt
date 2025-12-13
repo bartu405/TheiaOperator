@@ -203,19 +203,29 @@ class SessionReconciler(
         val sessMeta = resource.metadata!!
         val sessLabels = (sessMeta.labels ?: mutableMapOf()).toMutableMap()
 
+        val existingWsNameLabel  = sessLabels["app.henkan.io/workspaceName"]
+        val existingUserLabel    = sessLabels["app.henkan.io/workspaceUser"]
+        val existingProjectLabel = sessLabels["app.henkan.io/henkanProjectName"]
+
         val wsSpec = workspace.spec
         val projectNameRaw = wsSpec?.label
-
         val workspaceNameLabel = toHenkanLabelValue(nonNullWorkspaceName)
         val workspaceUserLabel = toHenkanLabelValue(user)
         val projectNameLabel = toHenkanLabelValue(projectNameRaw)
 
-        workspaceNameLabel?.let { sessLabels["app.henkan.io/workspaceName"] = it }
-        workspaceUserLabel?.let { sessLabels["app.henkan.io/workspaceUser"] = it }
-        projectNameLabel?.let { sessLabels["app.henkan.io/henkanProjectName"] = it }
+        if (existingWsNameLabel == null && !workspaceNameLabel.isNullOrBlank()) {
+            sessLabels["app.henkan.io/workspaceName"] = workspaceNameLabel
+        }
+        if (existingUserLabel == null && !workspaceUserLabel.isNullOrBlank()) {
+            sessLabels["app.henkan.io/workspaceUser"] = workspaceUserLabel
+        }
+        if (existingProjectLabel == null && !projectNameLabel.isNullOrBlank()) {
+            sessLabels["app.henkan.io/henkanProjectName"] = projectNameLabel
+        }
 
         sessMeta.labels = sessLabels
         client.resource(resource).inNamespace(ns).patch()
+
         log.info(
             "Session {}/{} labeled with Henkan labels: {}",
             ns, k8sName, sessLabels.filterKeys { it.startsWith("app.henkan.io/") }

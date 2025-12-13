@@ -17,8 +17,4 @@ spec:
   limitsMemory: 1Gi
   downlinkLimit: 2000
   uplinkLimit: 1000
-  monitor:
-    port: 9000
-    activityTracker:
-      timeoutAfter: 1800
-      notifyAfter: 600
+  timeout: 2

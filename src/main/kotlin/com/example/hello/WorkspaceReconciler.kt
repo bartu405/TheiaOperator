@@ -79,23 +79,26 @@ class WorkspaceReconciler(
         val meta = resource.metadata!!
         val labels = (meta.labels ?: mutableMapOf()).toMutableMap()
 
-        // raw values from spec
+        val existingWsNameLabel  = labels["app.henkan.io/workspaceName"]
+        val existingUserLabel    = labels["app.henkan.io/workspaceUser"]
+        val existingProjectLabel = labels["app.henkan.io/henkanProjectName"]
+
+        // derive fallback values from spec
         val projectNameRaw = spec.label
         val workspaceNameRaw = spec.name!!
         val workspaceUserRaw = spec.user!!
 
-        // turn them into valid label values
         val projectNameLabel = toHenkanLabelValue(projectNameRaw)
         val workspaceNameLabel = toHenkanLabelValue(workspaceNameRaw)
         val workspaceUserLabel = toHenkanLabelValue(workspaceUserRaw)
 
-        if (!workspaceNameLabel.isNullOrBlank()) {
+        if (existingWsNameLabel == null && !workspaceNameLabel.isNullOrBlank()) {
             labels["app.henkan.io/workspaceName"] = workspaceNameLabel
         }
-        if (!workspaceUserLabel.isNullOrBlank()) {
+        if (existingUserLabel == null && !workspaceUserLabel.isNullOrBlank()) {
             labels["app.henkan.io/workspaceUser"] = workspaceUserLabel
         }
-        if (!projectNameLabel.isNullOrBlank()) {
+        if (existingProjectLabel == null && !projectNameLabel.isNullOrBlank()) {
             labels["app.henkan.io/henkanProjectName"] = projectNameLabel
         }
 
@@ -169,13 +172,9 @@ class WorkspaceReconciler(
             status.error = volumeStatus.message
         }
 
-// 2) Return status patch
+        // 2) Return status patch
         return UpdateControl.patchStatus(resource)
 
-
-
-
-        return UpdateControl.patchStatus(resource)
     }
 
     /**
@@ -237,11 +236,18 @@ class WorkspaceReconciler(
                 existing.metadata.ownerReferences = cleanedRefs + controllerOwnerRef(ws)
             }
 
-            // Patch / add Henkan PVC labels
             val pvcLabels = (existing.metadata.labels ?: emptyMap()).toMutableMap()
-            workspaceNameLabel?.let { pvcLabels["app.henkan.io/workspaceName"] = it }
-            workspaceUserLabel?.let { pvcLabels["app.henkan.io/workspaceUser"] = it }
-            projectNameLabel?.let { pvcLabels["app.henkan.io/henkanProjectName"] = it }
+
+            if (!pvcLabels.containsKey("app.henkan.io/workspaceName")) {
+                workspaceNameLabel?.let { pvcLabels["app.henkan.io/workspaceName"] = it }
+            }
+            if (!pvcLabels.containsKey("app.henkan.io/workspaceUser")) {
+                workspaceUserLabel?.let { pvcLabels["app.henkan.io/workspaceUser"] = it }
+            }
+            if (!pvcLabels.containsKey("app.henkan.io/henkanProjectName")) {
+                projectNameLabel?.let { pvcLabels["app.henkan.io/henkanProjectName"] = it }
+            }
+
 
             existing.metadata.labels = pvcLabels
             pvcClient.resource(existing).patch()
