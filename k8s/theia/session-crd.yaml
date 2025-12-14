@@ -72,6 +72,7 @@ spec:
               required:
                 - name
                 - user
+                - workspace
                 - appDefinition
             status:
               type: object

@@ -40,12 +40,12 @@ spec:
         theia-cloud.io/session-uuid: ${sessionUid}
         theia-cloud.io/session-uid: ${sessionUid}
         theia-cloud.io/user: ${user}
-    annotations:
+      annotations:
 #if( $downlinkLimit )
-        kubernetes.io/ingress-bandwidth: "${downlinkLimit}k"
+          kubernetes.io/ingress-bandwidth: "${downlinkLimit}k"
 #end
 #if( $uplinkLimit )
-        kubernetes.io/egress-bandwidth: "${uplinkLimit}k"
+          kubernetes.io/egress-bandwidth: "${uplinkLimit}k"
 #end
     spec:
       automountServiceAccountToken: false
