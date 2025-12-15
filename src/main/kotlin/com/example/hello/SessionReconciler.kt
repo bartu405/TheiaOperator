@@ -234,7 +234,7 @@ class SessionReconciler(
         // --- 3) Env: system THEIACLOUD_* + user envVars
         val sessionEnvMap = spec.envVars ?: emptyMap()
 
-        val appId = appSpec.uid?.toString() ?: nonNullAppDefName
+        val appId = appSpec.name ?: appDef.metadata?.name ?: nonNullAppDefName
         val serviceName = "theia-$nonNullSessionName"
         val serviceUrl = "http://$serviceName:$port"
 

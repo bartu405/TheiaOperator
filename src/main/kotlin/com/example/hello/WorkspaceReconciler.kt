@@ -139,7 +139,6 @@ class WorkspaceReconciler(
                 log.warn("AppDefinition {}/{} not found for Workspace {}/{}", ns, appDefName, ns, name)
                 status.operatorStatus = "Warning"
                 status.operatorMessage = "AppDefinition '$appDefName' not found in namespace '$ns'"
-                // not fatal; workspace can still exist without an AppDefinition
             }
         }
 
