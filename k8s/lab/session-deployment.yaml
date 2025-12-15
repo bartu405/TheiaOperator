@@ -86,7 +86,7 @@ spec:
             - name: THEIACLOUD_SESSION_SECRET
               value: henkansecret
             - name: THEIACLOUD_MONITOR_ENABLE_ACTIVITY_TRACKER
-              value: placeholder-enable-activity-tracker
+              value: placeholder-enable-activity-trackera
             - name: THEIACLOUD_MONITOR_PORT
               value: placeholder-monitor-env-port
             - name: THEIACLOUD_KEYCLOAK_URL

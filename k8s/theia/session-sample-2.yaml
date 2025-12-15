@@ -1,0 +1,12 @@
+apiVersion: example.suleyman.io/v1
+kind: Session
+metadata:
+  name: demo-session-2
+spec:
+  name: demo-session-2
+  workspace: demo-ws        # same workspace on purpose
+  appDefinition: sample-app
+  user: bartu
+  sessionSecret: "another-secret"
+  envVars:
+    FAVORITE_COLOR: green
