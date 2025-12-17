@@ -11,6 +11,30 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import controllerOwnerRef
 import org.slf4j.LoggerFactory
 
+/**
+ * Key change vs your previous version:
+ * - DO NOT update the primary Workspace CR via client.edit() inside reconcile (causes 409 conflicts).
+ * - Instead, mutate the in-memory `resource` (spec/metadata/status) and return one UpdateControl
+ *   (patchResourceAndStatus) to persist everything in a single write.
+ */
+
+//Previous version:
+//This updated implementation:
+//1. **Generates storage names** rather than requiring them upfront
+//2. **Updates the workspace spec** with the generated storage name
+//3. **Sets appropriate status** at each stage like Theia Cloud does
+//4. **Includes a `hasStorage()`** helper method like in Theia Cloud
+//5. **Maintains ownership relationships** between resources
+//
+//Key Theia Cloud-like behaviors:
+//- The storage field isn't required upfront - it gets generated and set during reconciliation
+//- Progress is tracked with detailed status updates
+//- The storage name follows a predictable pattern based on the workspace name
+//- Owner references ensure proper resource lifecycle management
+//- The PVC is properly labeled for identification
+//
+//The code now handles both cases: workspaces that don't yet have storage defined, and existing workspaces that already have storage configured.
+
 @ControllerConfiguration(
     name = "workspace-controller"
 )
@@ -39,7 +63,7 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-        // Validate required CRD fields: spec.name, spec.user
+        // Validate required CRD fields: spec.name, spec.user, spec.appDefinition
         if (spec.name.isNullOrBlank()) {
             status.operatorStatus = "Error"
             status.operatorMessage = "spec.name is required"
@@ -54,8 +78,6 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-        // Validate required CRD fields: spec.name, spec.user, spec.appDefinition, spec.storage
-
         if (spec.appDefinition.isNullOrBlank()) {
             status.operatorStatus = "Error"
             status.operatorMessage = "spec.appDefinition is required"
@@ -63,10 +85,8 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-
-
-
         var metadataChanged = false
+        var specChanged = false
 
         // --- Henkan-style labels on Workspace CR itself ---
         val meta = resource.metadata!!
@@ -85,22 +105,19 @@ class WorkspaceReconciler(
         val userRaw            = labels["app.henkan.io/workspaceUser"] ?: spec.user
 
         val fallbackUiName = deriveWorkspaceShortName(spec.name!!, spec.user!!)
-        putIfMissing("app.henkan.io/workspaceName",
+        putIfMissing(
+            "app.henkan.io/workspaceName",
             toHenkanLabelValue(uiWorkspaceNameRaw) ?: toHenkanLabelValue(fallbackUiName)
         )
-
         putIfMissing("app.henkan.io/workspaceUser", toHenkanLabelValue(userRaw))
         putIfMissing("app.henkan.io/henkanProjectName", toHenkanLabelValue(projectNameRaw))
 
         if (metadataChanged) meta.labels = labels
 
-
         log.info(
             "Workspace {}/{} Henkan labels: {}",
             ns, name, labels.filterKeys { it.startsWith("app.henkan.io/") }
         )
-
-
 
         // --- link Workspace -> AppDefinition (if specified) ---
         val appDefName = spec.appDefinition
@@ -124,33 +141,31 @@ class WorkspaceReconciler(
 
                 log.info("Linked Workspace {}/{} as owned by AppDefinition {}/{}", ns, name, ns, appDefName)
             }
-        }
-        else {
+        } else {
             log.warn("AppDefinition {}/{} not found for Workspace {}/{}", ns, appDefName, ns, name)
             status.operatorStatus = "Warning"
             status.operatorMessage = "AppDefinition '$appDefName' not found in namespace '$ns'"
         }
 
+        // Set workspace status to being handled (like Theia Cloud)
+        status.operatorStatus = "HANDLING"
 
-        // 1) Ensure PVC exists (it will be owned by this Workspace)
-        val volumeStatus = ensurePvc(resource)
+        // Start PVC creation with status updates at various stages
+        status.volumeClaim = VolumeStatus(status = "started", message = "")
+        status.volumeAttach = VolumeStatus(status = "started", message = "")
+
+        val pvcResult = ensurePvc(resource)
+        if (pvcResult.storageUpdated) specChanged = true
 
         // Map internal PVC result to Henkan-style status fields
+        val volumeStatus = pvcResult.volumeStatus
         if (volumeStatus.status == "Created" || volumeStatus.status == "Exists") {
-            // Successful PVC state -> Henkan-style "finished"
-            status.volumeClaim = VolumeStatus(
-                status = "finished",
-                message = ""
-            )
-            status.volumeAttach = VolumeStatus(
-                status = "finished",
-                message = ""
-            )
+            status.volumeClaim = VolumeStatus(status = "finished", message = "")
+            status.volumeAttach = VolumeStatus(status = "finished", message = "")
             status.error = null
             status.operatorStatus = "HANDLED"
             status.operatorMessage = "Workspace reconciled successfully"
         } else {
-            // Error-ish PVC state, propagate details
             status.volumeClaim = volumeStatus
             status.volumeAttach = VolumeStatus(
                 status = "Error",
@@ -161,75 +176,98 @@ class WorkspaceReconciler(
             status.error = volumeStatus.message
         }
 
-        // 2) Return status patch
-        return if (metadataChanged) {
+        // One write to the primary resource:
+        // - if spec or metadata changed -> patch resource + status together
+        // - else -> patch only status
+        return if (metadataChanged || specChanged) {
             UpdateControl.patchResourceAndStatus(resource)
         } else {
             UpdateControl.patchStatus(resource)
         }
-
-
     }
+
+    private data class EnsurePvcResult(
+        val volumeStatus: VolumeStatus,
+        val storageUpdated: Boolean
+    )
 
     /**
      * Ensure a PVC exists for this workspace.
-     * Uses:
-     *   - spec.name -> workspace name (for PVC name)
-     *   - spec.storage -> PVC name (required)
+     * If spec.storage is missing, generate a name and set it on the in-memory Workspace object.
+     *
+     * IMPORTANT: does NOT call client.edit() on Workspace to avoid 409 conflicts.
      */
-    private fun ensurePvc(ws: Workspace): VolumeStatus {
-        val wsMeta = ws.metadata ?: return VolumeStatus(
-            status = "Error",
-            message = "Workspace metadata is missing"
+    private fun ensurePvc(ws: Workspace): EnsurePvcResult {
+        val wsMeta = ws.metadata ?: return EnsurePvcResult(
+            volumeStatus = VolumeStatus(status = "Error", message = "Workspace metadata is missing"),
+            storageUpdated = false
         )
 
-        val wsName = wsMeta.name ?: return VolumeStatus(
-            status = "Error",
-            message = "Workspace metadata.name is missing"
+        val wsName = wsMeta.name ?: return EnsurePvcResult(
+            volumeStatus = VolumeStatus(status = "Error", message = "Workspace metadata.name is missing"),
+            storageUpdated = false
         )
+
         val ns = wsMeta.namespace ?: "default"
-        val spec = ws.spec
-        val pvcName = spec?.storage ?: return VolumeStatus(
-            status = "Error",
-            message = "Workspace spec.storage (PVC name) is missing"
-        )
+
+        val pvcName = if (ws.hasStorage()) {
+            ws.spec!!.storage!!
+        } else {
+            try {
+                generateStorageName(ws)
+            } catch (e: Exception) {
+                return EnsurePvcResult(
+                    volumeStatus = VolumeStatus(
+                        status = "Error",
+                        message = "Failed to generate storage name: ${e.message}"
+                    ),
+                    storageUpdated = false
+                )
+            }
+        }
+
+        log.info("Using PVC name '{}' for workspace {}", pvcName, wsName)
+
+        // If storage differs, update it on the in-memory CR (persisted by patchResourceAndStatus)
+        val storageUpdated = (ws.spec?.storage != pvcName)
+        if (storageUpdated) {
+            ws.spec!!.storage = pvcName
+        }
 
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
 
-        // For now, we just use a fixed default size.
-        // Later we can wire this from AppDefinition or elsewhere.
+        // For now, fixed default size.
         val size = "5Gi"
-
-        // No more options; storageClassName can be wired later if needed.
         val storageClassName: String? = null
 
         // --- Henkan-style label values derived from Workspace spec ---
+        val spec = ws.spec!!
         val workspaceNameRaw = deriveWorkspaceShortName(spec.name!!, spec.user!!)
-        val workspaceUserRaw = spec?.user
-        val projectNameRaw = spec?.label
+        val workspaceUserRaw = spec.user
+        val projectNameRaw = spec.label
 
-        // sanitize to valid label values
         val workspaceNameLabel = toHenkanLabelValue(workspaceNameRaw) ?: workspaceNameRaw
         val workspaceUserLabel = toHenkanLabelValue(workspaceUserRaw) ?: workspaceUserRaw
         val projectNameLabel = toHenkanLabelValue(projectNameRaw)
 
         if (existing != null) {
+            // Update owner refs on PVC (safe to patch PVC separately)
             val wsUid = ws.metadata?.uid
             if (wsUid != null) {
                 val currentRefs = existing.metadata.ownerReferences ?: emptyList()
 
-                // 1) Drop any old Workspace controller refs (old UIDs etc.)
+                // Drop any old Workspace controller refs for this name
                 val cleanedRefs = currentRefs.filterNot { ref ->
                     ref.controller == true &&
                             ref.kind == "Workspace" &&
                             ref.name == ws.metadata?.name
                 }
 
-                // 2) Add our current Workspace as *the* controller
                 existing.metadata.ownerReferences = cleanedRefs + controllerOwnerRef(ws)
             }
 
+            // Ensure Henkan labels on PVC
             val pvcLabels = (existing.metadata.labels ?: emptyMap()).toMutableMap()
 
             if (!pvcLabels.containsKey("app.henkan.io/workspaceName")) {
@@ -242,8 +280,11 @@ class WorkspaceReconciler(
                 projectNameLabel?.let { pvcLabels["app.henkan.io/henkanProjectName"] = it }
             }
 
-
             existing.metadata.labels = pvcLabels
+
+            // (Optional safety) Don’t patch status back accidentally
+            existing.status = null
+
             pvcClient.resource(existing).patch()
 
             log.info(
@@ -251,12 +292,14 @@ class WorkspaceReconciler(
                 pvcName, ns, pvcLabels.filterKeys { it.startsWith("app.henkan.io/") }
             )
 
-            return VolumeStatus(
-                status = "Exists",
-                message = "PVC '$pvcName' already exists in namespace '$ns'"
+            return EnsurePvcResult(
+                volumeStatus = VolumeStatus(
+                    status = "Exists",
+                    message = "PVC '$pvcName' already exists in namespace '$ns'"
+                ),
+                storageUpdated = storageUpdated
             )
         }
-
 
         // --- Build label map for a *new* PVC ---
         val labels = mutableMapOf(
@@ -269,10 +312,8 @@ class WorkspaceReconciler(
         workspaceUserLabel?.let { labels["app.henkan.io/workspaceUser"] = it }
         projectNameLabel?.let { labels["app.henkan.io/henkanProjectName"] = it }
 
-        // create fresh PVC with ownerRef
         log.info("PVC {} not found in namespace {}, creating it", pvcName, ns)
 
-        // Note: we let the builder stay in the *SpecNested* type until endSpec()
         var pvcBuilder = PersistentVolumeClaimBuilder()
             .withNewMetadata()
             .withName(pvcName)
@@ -285,7 +326,7 @@ class WorkspaceReconciler(
             .endResources()
 
         if (!storageClassName.isNullOrBlank()) {
-            pvcBuilder = pvcBuilder.withStorageClassName(storageClassName.toString())
+            pvcBuilder = pvcBuilder.withStorageClassName(storageClassName)
         }
 
         val pvc = pvcBuilder
@@ -297,12 +338,35 @@ class WorkspaceReconciler(
         pvcClient.resource(pvc).create()
         log.info("Created PVC {}/{} with Henkan labels", ns, pvcName)
 
-        return VolumeStatus(
-            status = "Created",
-            message = "PVC '$pvcName' created in namespace '$ns' with size '$size'"
+        return EnsurePvcResult(
+            volumeStatus = VolumeStatus(
+                status = "Created",
+                message = "PVC '$pvcName' created in namespace '$ns' with size '$size'"
+            ),
+            storageUpdated = storageUpdated
         )
     }
 
+    /**
+     * Generates a storage name for a workspace following a predictable pattern.
+     */
+    private fun generateStorageName(workspace: Workspace): String {
+        val wsName = workspace.metadata?.name ?: throw IllegalArgumentException("Workspace has no name")
+        val sanitizedName = wsName
+            .lowercase()
+            .replace(Regex("[^a-z0-9-]"), "-")
+            .replace(Regex("-+"), "-")
+            .trim('-')
+            .take(40)
+        return "ws-storage-$sanitizedName"
+    }
+
+    /**
+     * Helper like Theia Cloud.
+     */
+    private fun Workspace.hasStorage(): Boolean {
+        return this.spec?.storage?.isNotBlank() == true
+    }
 
     private fun ensureStatus(resource: Workspace): WorkspaceStatus {
         if (resource.status == null) {
@@ -312,7 +376,6 @@ class WorkspaceReconciler(
     }
 
     private fun deriveWorkspaceShortName(wsIdOrName: String, user: String): String {
-        // Approximate Henkan sanitize: allow [a-zA-Z0-9-], trim hyphens, collapse repeats
         val sanitizedUser = user
             .replace(Regex("[^a-zA-Z0-9-]"), "")
             .replace(Regex("-+"), "-")
@@ -326,4 +389,13 @@ class WorkspaceReconciler(
         }
     }
 
+    private fun toHenkanLabelValue(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+
+        return value
+            .replace(Regex("[^-_.a-zA-Z0-9]"), "-")
+            .replace(Regex("^[^a-zA-Z0-9]+"), "")
+            .replace(Regex("[^a-zA-Z0-9]+$"), "")
+            .take(63)
+    }
 }

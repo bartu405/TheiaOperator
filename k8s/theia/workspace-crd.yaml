@@ -51,8 +51,6 @@ spec:
               required:
                 - name
                 - user
-                - appDefinition
-                - storage
             status:
               type: object
               properties:
