@@ -57,8 +57,6 @@ class SessionReconciler(
         val spec = resource.spec
         log.info("Reconciling Session {}/{} spec={}", ns, k8sName, spec)
 
-        val status = ensureStatus(resource)
-
         // --- 1) Basic validation of spec
         if (spec == null) {
             return failStatus(resource, "spec is null on Session {}/$k8sName".format(ns))
@@ -175,20 +173,20 @@ class SessionReconciler(
             )
         }
 
-        // --- 2.6) Ensure Session has ownerRef = Workspace
-        val existingRefs = meta.ownerReferences ?: emptyList()
-        val hasWsOwner = existingRefs.any { it.uid == workspace.metadata.uid }
+        var metadataChanged = false
 
-        if (!hasWsOwner) {
-            val newRefs = existingRefs.toMutableList()
-            newRefs.add(controllerOwnerRef(workspace))
-            meta.ownerReferences = newRefs
-            client.resource(resource).inNamespace(ns).patch()
-            log.info(
-                "Added ownerReference Workspace {}/{} to Session {}/{}",
-                ns, workspace.metadata.name, ns, k8sName
-            )
-        }
+        // 2.6 ownerRef (NO client.patch here)
+        val existingRefs = (meta.ownerReferences ?: emptyList()).toMutableList()
+
+        val newRefs = existingRefs
+            .filterNot { it.controller == true }  // drop any previous controller owner
+            .toMutableList()
+
+        newRefs.add(controllerOwnerRef(workspace))
+        meta.ownerReferences = newRefs
+        metadataChanged = true
+
+
 
         // --- 2.7) Session and Workspace must agree on appDefinition
         val wsAppDefName = workspace.spec?.appDefinition
@@ -199,37 +197,19 @@ class SessionReconciler(
             )
         }
 
-        // --- 2.8) Henkan-style labels on Session CR itself
-        val sessMeta = resource.metadata!!
-        val sessLabels = (sessMeta.labels ?: mutableMapOf()).toMutableMap()
-
-        val existingWsNameLabel  = sessLabels["app.henkan.io/workspaceName"]
-        val existingUserLabel    = sessLabels["app.henkan.io/workspaceUser"]
-        val existingProjectLabel = sessLabels["app.henkan.io/henkanProjectName"]
-
-        val wsSpec = workspace.spec
-        val projectNameRaw = wsSpec?.label
-        val workspaceNameLabel = toHenkanLabelValue(nonNullWorkspaceName)
-        val workspaceUserLabel = toHenkanLabelValue(user)
-        val projectNameLabel = toHenkanLabelValue(projectNameRaw)
-
-        if (existingWsNameLabel == null && !workspaceNameLabel.isNullOrBlank()) {
-            sessLabels["app.henkan.io/workspaceName"] = workspaceNameLabel
-        }
-        if (existingUserLabel == null && !workspaceUserLabel.isNullOrBlank()) {
-            sessLabels["app.henkan.io/workspaceUser"] = workspaceUserLabel
-        }
-        if (existingProjectLabel == null && !projectNameLabel.isNullOrBlank()) {
-            sessLabels["app.henkan.io/henkanProjectName"] = projectNameLabel
+        // 2.8 labels (NO client.patch here)
+        val labels = (meta.labels ?: emptyMap()).toMutableMap()
+        fun putIfMissing(k: String, v: String?) {
+            if (!v.isNullOrBlank() && !labels.containsKey(k)) {
+                labels[k] = v
+                metadataChanged = true
+            }
         }
 
-        sessMeta.labels = sessLabels
-        client.resource(resource).inNamespace(ns).patch()
-
-        log.info(
-            "Session {}/{} labeled with Henkan labels: {}",
-            ns, k8sName, sessLabels.filterKeys { it.startsWith("app.henkan.io/") }
-        )
+        putIfMissing("app.henkan.io/workspaceName", toHenkanLabelValue(nonNullWorkspaceName))
+        putIfMissing("app.henkan.io/workspaceUser", toHenkanLabelValue(user))
+        putIfMissing("app.henkan.io/henkanProjectName", toHenkanLabelValue(workspace.spec?.label))
+        meta.labels = labels
 
         // --- 3) Env: system THEIACLOUD_* + user envVars
         val sessionEnvMap = spec.envVars ?: emptyMap()
@@ -357,15 +337,17 @@ class SessionReconciler(
 
 
         // --- 6) Status on success
-        val nowMillis = System.currentTimeMillis()
-
+        val status = ensureStatus(resource)
         status.operatorStatus = "HANDLED"
         status.operatorMessage = "Session is running"
         status.url = sessionUrlForStatus
-        status.error = null
-        status.lastActivity = nowMillis
+        status.lastActivity = System.currentTimeMillis()
 
-        return UpdateControl.patchStatus(resource)
+        return if (metadataChanged) {
+            UpdateControl.patchResourceAndStatus(resource)   // ✅ single write for CR + status
+        } else {
+            UpdateControl.patchStatus(resource)              // ✅ only status
+        }
     }
 
     override fun cleanup(resource: Session, context: Context<Session>): DeleteControl {
@@ -659,6 +641,17 @@ class SessionReconciler(
                 .endSpec()
                 .build()
 
+            // enforce AppDefinition as the ONLY controller owner
+            val meta = ingress.metadata
+
+            val cleaned = (meta?.ownerReferences ?: emptyList())
+                .filterNot { ref -> ref.controller == true }
+                .toMutableList()
+
+            cleaned.add(controllerOwnerRef(appDef))
+            meta?.ownerReferences = cleaned
+
+
             ingressClient.resource(ingress).createOrReplace()
             return
         }
@@ -730,6 +723,7 @@ class SessionReconciler(
 
             rules[ruleIndex] = newRule
         }
+
 
         ingress.spec?.setRules(rules)
         ingressClient.resource(ingress).createOrReplace()

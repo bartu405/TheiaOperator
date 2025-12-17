@@ -21,9 +21,3 @@ spec:
   downlinkLimit: 30000
   uplinkLimit: 30000
   mountPath: /home/henkan/project
-
-  options:
-    serviceAccountName: designer
-    jobTypesConfigMapName: jobtypes-config
-    enableKubeApiAccess: "true"
-

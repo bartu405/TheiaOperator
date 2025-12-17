@@ -3,42 +3,44 @@ kind: Session
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"example.suleyman.io/v1","kind":"Session","metadata":{"annotations":{},"name":"demo-session-henkan-env","namespace":"default"},"spec":{"appDefinition":"sample-app","envVars":{"COMMIT_GENAI_ENDPOINT":"https://henkan-genai.example/webhook/123","EMAIL":"bartu@example.com","GIT_AUTHOR_NAME":"bartu","GIT_SSL_NO_VERIFY":"true","HENKAN_GIT_EMAIL":"bartu@example.com","HENKAN_GIT_USER":"bartu","HENKAN_META_API_URL":"http://henkan-metaapi.henkan-metaapi","HENKAN_PROJECT_GIT_URL":"https://github.com/GlobalMaksimum/henkan-etl-flow-project.git","HENKAN_PROJECT_NAME":"busra"},"name":"demo-session-henkan-env","sessionSecret":"super-secret-999","user":"bartu","workspace":"demo-ws"}}
-  creationTimestamp: "2025-12-09T04:24:40Z"
+      {"apiVersion":"example.suleyman.io/v1","kind":"Session","metadata":{"annotations":{},"labels":{"app.henkan.io/henkanProjectName":"bartu-demo-workspace","app.henkan.io/workspaceName":"demo-ws","app.henkan.io/workspaceUser":"bartu"},"name":"bartu-demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","envVars":{"COMMIT_GENAI_ENDPOINT":"https://example.com/webhook/xyz","EMAIL":"bartu@globalmaksimum.com","GIT_AUTHOR_NAME":"bartu","GIT_SSL_NO_VERIFY":"true","HENKAN_GIT_EMAIL":"bartu@globalmaksimum.com","HENKAN_GIT_USER":"bartu","HENKAN_META_API_URL":"http://henkan-metaapi.henkan-metaapi","HENKAN_PROJECT_GIT_URL":"https://github.com/GlobalMaksimum/henkan-etl-flow-project.git","HENKAN_PROJECT_NAME":"busra"},"name":"bartu-demo-ws","sessionSecret":"henkansecret","user":"bartu","workspace":"bartu-demo-ws"}}
+  creationTimestamp: "2025-12-17T12:53:17Z"
+  finalizers:
+    - sessions.example.suleyman.io/finalizer
   generation: 1
   labels:
     app.henkan.io/henkanProjectName: bartu-demo-workspace
     app.henkan.io/workspaceName: demo-ws
     app.henkan.io/workspaceUser: bartu
-  name: demo-session-henkan-env
+  name: bartu-demo-ws
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
       blockOwnerDeletion: true
       controller: true
       kind: Workspace
-      name: demo-ws
-      uid: a738ef70-493f-4df5-9018-4cc787aeda59
-  resourceVersion: "1275633"
-  uid: 7429dc07-4309-4b19-9b10-64fd7ae8b65f
+      name: bartu-demo-ws
+      uid: c4ed3ad0-1228-4c1c-a3c4-54d3f6c39124
+  resourceVersion: "1875744"
+  uid: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
 spec:
   appDefinition: sample-app
   envVars:
-    COMMIT_GENAI_ENDPOINT: https://henkan-genai.example/webhook/123
-    EMAIL: bartu@example.com
+    COMMIT_GENAI_ENDPOINT: https://example.com/webhook/xyz
+    EMAIL: bartu@globalmaksimum.com
     GIT_AUTHOR_NAME: bartu
     GIT_SSL_NO_VERIFY: "true"
-    HENKAN_GIT_EMAIL: bartu@example.com
+    HENKAN_GIT_EMAIL: bartu@globalmaksimum.com
     HENKAN_GIT_USER: bartu
     HENKAN_META_API_URL: http://henkan-metaapi.henkan-metaapi
     HENKAN_PROJECT_GIT_URL: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
     HENKAN_PROJECT_NAME: busra
-  name: demo-session-henkan-env
-  sessionSecret: super-secret-999
+  name: bartu-demo-ws
+  sessionSecret: henkansecret
   user: bartu
-  workspace: demo-ws
+  workspace: bartu-demo-ws
 status:
-  lastActivity: 1765254283
+  lastActivity: 1765975998864
   operatorMessage: Session is running
   operatorStatus: HANDLED
-  url: theia.localtest.me/7429dc07-4309-4b19-9b10-64fd7ae8b65f/
+  url: theia.localtest.me/e69e7867-60d9-4ec7-bbb5-900d2d438e2e/

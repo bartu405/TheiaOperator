@@ -1,12 +1,15 @@
 apiVersion: example.suleyman.io/v1
 kind: Workspace
 metadata:
-  name: demo-ws
+  name: bartu-demo-ws
   namespace: default
+  labels:
+    app.henkan.io/workspaceName: demo-ws
+    app.henkan.io/workspaceUser: bartu
+    app.henkan.io/henkanProjectName: bartu-demo-workspace
 spec:
-  name: "demo-ws"
-  label: "bartu-demo-workspace"
-  appDefinition: "sample-app"
-  user: "bartu"
-  storage: "workspace-demo-ws"
-
+  name: bartu-demo-ws
+  label: bartu-demo-workspace
+  appDefinition: sample-app
+  user: bartu
+  storage: bartu-demo-ws

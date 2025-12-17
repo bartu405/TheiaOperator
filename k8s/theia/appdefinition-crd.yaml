@@ -84,10 +84,6 @@ spec:
                           type: integer
                         notifyAfter:
                           type: integer
-                options:
-                  type: object
-                  additionalProperties:
-                    x-kubernetes-int-or-string: true
 
               required:
                 - name

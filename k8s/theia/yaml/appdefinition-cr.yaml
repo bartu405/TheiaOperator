@@ -3,32 +3,31 @@ kind: AppDefinition
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"example.suleyman.io/v1","kind":"AppDefinition","metadata":{"annotations":{},"name":"sample-app","namespace":"default"},"spec":{"downlinkLimit":2000,"image":"ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest","ingressname":"sample-app","limitsCpu":"250m","limitsMemory":"1Gi","maxInstances":1,"minInstances":1,"monitor":{"activityTracker":{"notifyAfter":600,"timeoutAfter":1800},"port":9000},"name":"sample-app","port":3000,"requestsCpu":"250m","requestsMemory":"512Mi","uid":101,"uplinkLimit":1000}}
-  creationTimestamp: "2025-12-09T04:24:40Z"
+      {"apiVersion":"example.suleyman.io/v1","kind":"AppDefinition","metadata":{"annotations":{},"name":"sample-app","namespace":"default"},"spec":{"downlinkLimit":30000,"image":"ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest","imagePullPolicy":"IfNotPresent","ingressname":"sample-app","limitsCpu":"2","limitsMemory":"1200Mi","maxInstances":50,"minInstances":0,"mountPath":"/home/henkan/project","name":"sample-app","port":3000,"pullSecret":"regcred","requestsCpu":"100m","requestsMemory":"1000Mi","timeout":180,"uid":101,"uplinkLimit":30000}}
+  creationTimestamp: "2025-12-17T12:53:17Z"
   generation: 1
   name: sample-app
   namespace: default
-  resourceVersion: "1275596"
-  uid: f0bd7206-d5e6-4df2-b1db-17c7bf495596
+  resourceVersion: "1875705"
+  uid: 5c501d79-c334-4fc3-8373-119471b852b9
 spec:
-  downlinkLimit: 2000
+  downlinkLimit: 30000
   image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
+  imagePullPolicy: IfNotPresent
   ingressname: sample-app
-  limitsCpu: 250m
-  limitsMemory: 1Gi
-  maxInstances: 1
-  minInstances: 1
-  monitor:
-    activityTracker:
-      notifyAfter: 600
-      timeoutAfter: 1800
-    port: 9000
+  limitsCpu: "2"
+  limitsMemory: 1200Mi
+  maxInstances: 50
+  minInstances: 0
+  mountPath: /home/henkan/project
   name: sample-app
   port: 3000
-  requestsCpu: 250m
-  requestsMemory: 512Mi
+  pullSecret: regcred
+  requestsCpu: 100m
+  requestsMemory: 1000Mi
+  timeout: 180
   uid: 101
-  uplinkLimit: 1000
+  uplinkLimit: 30000
 status:
   operatorMessage: AppDefinition is valid
   operatorStatus: HANDLED

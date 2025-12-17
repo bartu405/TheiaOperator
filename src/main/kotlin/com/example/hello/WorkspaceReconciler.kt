@@ -71,76 +71,67 @@ class WorkspaceReconciler(
         }
 
 
+        var metadataChanged = false
+
         // --- Henkan-style labels on Workspace CR itself ---
-        // We derive:
-        //   app.henkan.io/henkanProjectName  <- slug(spec.label OR spec.options["henkanProjectName"])
-        //   app.henkan.io/workspaceName      <- slug(spec.name)
-        //   app.henkan.io/workspaceUser      <- slug(spec.user)
         val meta = resource.metadata!!
-        val labels = (meta.labels ?: mutableMapOf()).toMutableMap()
+        val labels = (meta.labels ?: emptyMap()).toMutableMap()
 
-        val existingWsNameLabel  = labels["app.henkan.io/workspaceName"]
-        val existingUserLabel    = labels["app.henkan.io/workspaceUser"]
-        val existingProjectLabel = labels["app.henkan.io/henkanProjectName"]
-
-        // derive fallback values from spec
-        val projectNameRaw = spec.label
-        val workspaceNameRaw = spec.name!!
-        val workspaceUserRaw = spec.user!!
-
-        val projectNameLabel = toHenkanLabelValue(projectNameRaw)
-        val workspaceNameLabel = toHenkanLabelValue(workspaceNameRaw)
-        val workspaceUserLabel = toHenkanLabelValue(workspaceUserRaw)
-
-        if (existingWsNameLabel == null && !workspaceNameLabel.isNullOrBlank()) {
-            labels["app.henkan.io/workspaceName"] = workspaceNameLabel
-        }
-        if (existingUserLabel == null && !workspaceUserLabel.isNullOrBlank()) {
-            labels["app.henkan.io/workspaceUser"] = workspaceUserLabel
-        }
-        if (existingProjectLabel == null && !projectNameLabel.isNullOrBlank()) {
-            labels["app.henkan.io/henkanProjectName"] = projectNameLabel
+        fun putIfMissing(k: String, v: String?) {
+            if (!v.isNullOrBlank() && !labels.containsKey(k)) {
+                labels[k] = v
+                metadataChanged = true
+            }
         }
 
-        meta.labels = labels
-        client.resource(resource).inNamespace(ns).patch()
+        // Prefer existing labels (Henkan-server sets them). Only fallback if missing.
+        val uiWorkspaceNameRaw = labels["app.henkan.io/workspaceName"]   // UI name (demo-ws)
+        val projectNameRaw     = labels["app.henkan.io/henkanProjectName"] ?: spec.label
+        val userRaw            = labels["app.henkan.io/workspaceUser"] ?: spec.user
+
+        putIfMissing("app.henkan.io/workspaceName", toHenkanLabelValue(uiWorkspaceNameRaw) ?: toHenkanLabelValue(spec.name))
+        putIfMissing("app.henkan.io/workspaceUser", toHenkanLabelValue(userRaw))
+        putIfMissing("app.henkan.io/henkanProjectName", toHenkanLabelValue(projectNameRaw))
+
+        if (metadataChanged) meta.labels = labels
+
+
         log.info(
-            "Workspace {}/{} labeled with Henkan labels: {}",
+            "Workspace {}/{} Henkan labels: {}",
             ns, name, labels.filterKeys { it.startsWith("app.henkan.io/") }
         )
 
 
+
         // --- link Workspace -> AppDefinition (if specified) ---
-        // CRD field is now spec.appDefinition (string)
         val appDefName = spec.appDefinition
-        if (!appDefName.isNullOrBlank()) {
-            val appDef = client.resources(AppDefinition::class.java)
-                .inNamespace(ns)
-                .withName(appDefName)
-                .get()
+        val appDef = client.resources(AppDefinition::class.java)
+            .inNamespace(ns)
+            .withName(appDefName)
+            .get()
 
-            if (appDef != null) {
-                val wsMeta = resource.metadata
-                val existingRefs = wsMeta.ownerReferences ?: emptyList()
-                val alreadyOwned = existingRefs.any { it.uid == appDef.metadata.uid }
+        if (appDef != null) {
+            val wsMeta = resource.metadata!!
+            val refs = (wsMeta.ownerReferences ?: emptyList()).toMutableList()
 
-                if (!alreadyOwned) {
-                    val newRefs = existingRefs.toMutableList()
-                    newRefs.add(controllerOwnerRef(appDef))
-                    wsMeta.ownerReferences = newRefs
+            val currentController = refs.firstOrNull { it.controller == true }
+            val appUid = appDef.metadata.uid
 
-                    client.resource(resource).inNamespace(ns).patch()
-                    log.info(
-                        "Linked Workspace {}/{} as owned by AppDefinition {}/{}",
-                        ns, name, ns, appDefName
-                    )
-                }
-            } else {
-                log.warn("AppDefinition {}/{} not found for Workspace {}/{}", ns, appDefName, ns, name)
-                status.operatorStatus = "Warning"
-                status.operatorMessage = "AppDefinition '$appDefName' not found in namespace '$ns'"
+            if (currentController?.uid != appUid) {
+                val newRefs = refs.filterNot { it.controller == true }.toMutableList()
+                newRefs.add(controllerOwnerRef(appDef))
+                wsMeta.ownerReferences = newRefs
+                metadataChanged = true
+
+                log.info("Linked Workspace {}/{} as owned by AppDefinition {}/{}", ns, name, ns, appDefName)
             }
         }
+        else {
+            log.warn("AppDefinition {}/{} not found for Workspace {}/{}", ns, appDefName, ns, name)
+            status.operatorStatus = "Warning"
+            status.operatorMessage = "AppDefinition '$appDefName' not found in namespace '$ns'"
+        }
+
 
         // 1) Ensure PVC exists (it will be owned by this Workspace)
         val volumeStatus = ensurePvc(resource)
@@ -172,7 +163,12 @@ class WorkspaceReconciler(
         }
 
         // 2) Return status patch
-        return UpdateControl.patchStatus(resource)
+        return if (metadataChanged) {
+            UpdateControl.patchResourceAndStatus(resource)
+        } else {
+            UpdateControl.patchStatus(resource)
+        }
+
 
     }
 
@@ -210,7 +206,7 @@ class WorkspaceReconciler(
         val storageClassName: String? = null
 
         // --- Henkan-style label values derived from Workspace spec ---
-        val workspaceNameRaw = spec?.name
+        val workspaceNameRaw = deriveWorkspaceShortName(spec.name!!, spec.user!!)
         val workspaceUserRaw = spec?.user
         val projectNameRaw = spec?.label
 
@@ -315,4 +311,20 @@ class WorkspaceReconciler(
         }
         return resource.status!!
     }
+
+    private fun deriveWorkspaceShortName(wsIdOrName: String, user: String): String {
+        // Approximate Henkan sanitize: allow [a-zA-Z0-9-], trim hyphens, collapse repeats
+        val sanitizedUser = user
+            .replace(Regex("[^a-zA-Z0-9-]"), "")
+            .replace(Regex("-+"), "-")
+            .trim('-')
+
+        val prefix = "$sanitizedUser-"
+        return if (wsIdOrName.startsWith(prefix) && wsIdOrName.length > prefix.length) {
+            wsIdOrName.removePrefix(prefix)
+        } else {
+            wsIdOrName
+        }
+    }
+
 }

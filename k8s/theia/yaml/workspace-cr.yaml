@@ -3,14 +3,14 @@ kind: Workspace
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"example.suleyman.io/v1","kind":"Workspace","metadata":{"annotations":{},"name":"demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","label":"bartu-demo-workspace","name":"demo-ws","options":{"max-idle-minutes":"60","some-flag":"true"},"storage":"5Gi","user":"bartu"}}
-  creationTimestamp: "2025-12-09T04:24:40Z"
+      {"apiVersion":"example.suleyman.io/v1","kind":"Workspace","metadata":{"annotations":{},"labels":{"app.henkan.io/henkanProjectName":"bartu-demo-workspace","app.henkan.io/workspaceName":"demo-ws","app.henkan.io/workspaceUser":"bartu"},"name":"bartu-demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","label":"bartu-demo-workspace","name":"bartu-demo-ws","storage":"bartu-demo-ws","user":"bartu"}}
+  creationTimestamp: "2025-12-17T12:53:17Z"
   generation: 1
   labels:
     app.henkan.io/henkanProjectName: bartu-demo-workspace
     app.henkan.io/workspaceName: demo-ws
     app.henkan.io/workspaceUser: bartu
-  name: demo-ws
+  name: bartu-demo-ws
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
@@ -18,21 +18,21 @@ metadata:
       controller: true
       kind: AppDefinition
       name: sample-app
-      uid: f0bd7206-d5e6-4df2-b1db-17c7bf495596
-  resourceVersion: "1275614"
-  uid: a738ef70-493f-4df5-9018-4cc787aeda59
+      uid: 5c501d79-c334-4fc3-8373-119471b852b9
+  resourceVersion: "1875718"
+  uid: c4ed3ad0-1228-4c1c-a3c4-54d3f6c39124
 spec:
   appDefinition: sample-app
   label: bartu-demo-workspace
-  name: demo-ws
-  options:
-    max-idle-minutes: "60"
-    some-flag: "true"
-  storage: 5Gi
+  name: bartu-demo-ws
+  storage: bartu-demo-ws
   user: bartu
 status:
   operatorMessage: Workspace reconciled successfully
   operatorStatus: HANDLED
+  volumeAttach:
+    message: ""
+    status: finished
   volumeClaim:
-    message: PVC 'workspace-demo-ws' created in namespace 'default' with size '5Gi'
-    status: Created
+    message: ""
+    status: finished

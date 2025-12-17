@@ -1,22 +1,27 @@
 apiVersion: example.suleyman.io/v1
 kind: Session
 metadata:
-  name: demo-session             # Kubernetes resource name
+  name: bartu-demo-ws
   namespace: default
   labels:
-    app: theia
-    session-name: demo-session
-  annotations:
-    kubernetes.io/ingress-bandwidth: "2000k"
-    kubernetes.io/egress-bandwidth: "1000k"
+    app.henkan.io/workspaceName: demo-ws
+    app.henkan.io/workspaceUser: bartu
+    app.henkan.io/henkanProjectName: bartu-demo-workspace
 spec:
-  name: demo-session             # Logical session name (required)
-  workspace: demo-ws             # Workspace reference (required)
-  appDefinition: sample-app      # AppDefinition (required)
-  user: bartu                    # User (required)
-  sessionSecret: super-secret-123
+  name: bartu-demo-ws
+  workspace: bartu-demo-ws
+  appDefinition: sample-app
+  user: bartu
+  sessionSecret: henkansecret
 
-  # Optional fields:
   envVars:
-    FAVORITE_COLOR: blue
-    THEIA_CUSTOM_MESSAGE: "Hello from Session"
+    HENKAN_PROJECT_NAME: busra
+    HENKAN_PROJECT_GIT_URL: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
+    HENKAN_META_API_URL: http://henkan-metaapi.henkan-metaapi
+    HENKAN_GIT_USER: bartu
+    HENKAN_GIT_EMAIL: bartu@globalmaksimum.com
+    EMAIL: bartu@globalmaksimum.com
+    GIT_AUTHOR_NAME: bartu
+    GIT_SSL_NO_VERIFY: "true"
+    COMMIT_GENAI_ENDPOINT: https://example.com/webhook/xyz
+
