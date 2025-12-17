@@ -12,3 +12,13 @@ fun controllerOwnerRef(owner: HasMetadata): OwnerReference =
         .withController(true)
         .withBlockOwnerDeletion(true)
         .build()
+
+fun ownerRef(owner: HasMetadata): OwnerReference =
+    OwnerReferenceBuilder()
+        .withApiVersion(owner.apiVersion)
+        .withKind(owner.kind)
+        .withName(owner.metadata.name)
+        .withUid(owner.metadata.uid)
+        // DO NOT set controller=true
+        // DO NOT set blockOwnerDeletion=true
+        .build()

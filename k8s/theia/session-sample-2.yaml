@@ -4,7 +4,7 @@ metadata:
   name: demo-session-2
 spec:
   name: demo-session-2
-  workspace: demo-ws        # same workspace on purpose
+  workspace: demo-ws-2        # same workspace on purpose
   appDefinition: sample-app
   user: bartu
   sessionSecret: "another-secret"

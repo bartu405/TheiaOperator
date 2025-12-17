@@ -3,17 +3,17 @@ kind: Deployment
 metadata:
   annotations:
     deployment.kubernetes.io/revision: "1"
-  creationTimestamp: "2025-12-17T12:53:18Z"
+  creationTimestamp: "2025-12-17T13:42:09Z"
   generation: 1
   labels:
-    app: theia
+    app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
     session-name: bartu-demo-ws
     theia-cloud.io/app-definition: sample-app
     theia-cloud.io/session: bartu-demo-ws
-    theia-cloud.io/session-uid: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
-    theia-cloud.io/session-uuid: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
+    theia-cloud.io/session-uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+    theia-cloud.io/session-uuid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
     theia-cloud.io/user: bartu
   name: theia-bartu-demo-ws
   namespace: default
@@ -23,16 +23,16 @@ metadata:
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
-  resourceVersion: "1875761"
-  uid: c66a9239-480c-453a-993e-bec7812ae13c
+      uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+  resourceVersion: "1883139"
+  uid: 74bf3485-641b-4236-9c92-ffba4a72e3ea
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: theia
+      app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
       session-name: bartu-demo-ws
   strategy:
     rollingUpdate:
@@ -46,14 +46,14 @@ spec:
         kubernetes.io/ingress-bandwidth: 30000k
       creationTimestamp: null
       labels:
-        app: theia
+        app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
         app.kubernetes.io/component: session
         app.kubernetes.io/part-of: theia-cloud
         session-name: bartu-demo-ws
         theia-cloud.io/app-definition: sample-app
         theia-cloud.io/session: bartu-demo-ws
-        theia-cloud.io/session-uid: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
-        theia-cloud.io/session-uuid: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
+        theia-cloud.io/session-uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+        theia-cloud.io/session-uuid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
         theia-cloud.io/user: bartu
     spec:
       automountServiceAccountToken: false
@@ -88,13 +88,13 @@ spec:
             - name: THEIACLOUD_SERVICE_URL
               value: http://theia-bartu-demo-ws:3000
             - name: THEIACLOUD_SESSION_UID
-              value: e69e7867-60d9-4ec7-bbb5-900d2d438e2e
+              value: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
             - name: THEIACLOUD_SESSION_NAME
               value: bartu-demo-ws
             - name: THEIACLOUD_SESSION_USER
               value: bartu
             - name: THEIACLOUD_SESSION_URL
-              value: http://theia.localtest.me/e69e7867-60d9-4ec7-bbb5-900d2d438e2e/
+              value: http://theia.localtest.me/5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1/
             - name: THEIACLOUD_SESSION_SECRET
               value: henkansecret
             - name: COMMIT_GENAI_ENDPOINT
@@ -164,15 +164,15 @@ spec:
 status:
   availableReplicas: 1
   conditions:
-    - lastTransitionTime: "2025-12-17T12:53:21Z"
-      lastUpdateTime: "2025-12-17T12:53:21Z"
+    - lastTransitionTime: "2025-12-17T13:42:11Z"
+      lastUpdateTime: "2025-12-17T13:42:11Z"
       message: Deployment has minimum availability.
       reason: MinimumReplicasAvailable
       status: "True"
       type: Available
-    - lastTransitionTime: "2025-12-17T12:53:18Z"
-      lastUpdateTime: "2025-12-17T12:53:21Z"
-      message: ReplicaSet "theia-bartu-demo-ws-568496d5fd" has successfully progressed.
+    - lastTransitionTime: "2025-12-17T13:42:09Z"
+      lastUpdateTime: "2025-12-17T13:42:11Z"
+      message: ReplicaSet "theia-bartu-demo-ws-74c5fdcfd6" has successfully progressed.
       reason: NewReplicaSetAvailable
       status: "True"
       type: Progressing

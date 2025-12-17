@@ -5,7 +5,7 @@ metadata:
   name: ${deploymentName}
   namespace: ${namespace}
   labels:
-    app: theia
+    app: ${appLabel}
     session-name: ${sessionName}
 
     # Henkan-style standard labels:
@@ -22,12 +22,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: theia
+      app: ${appLabel}
       session-name: ${sessionName}
   template:
     metadata:
       labels:
-        app: theia
+        app: ${appLabel}
         session-name: ${sessionName}
 
         # Henkan-style standard labels:

@@ -1,3 +1,4 @@
+# File: appdefinition-sample.yaml
 apiVersion: example.suleyman.io/v1
 kind: AppDefinition
 metadata:
@@ -8,16 +9,16 @@ spec:
   image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest  # keep blueprint for local
   imagePullPolicy: IfNotPresent
   pullSecret: regcred
-  ingressname: sample-app
+  ingressname: sample-app-ingress
   uid: 101
   port: 3000
   minInstances: 0
   maxInstances: 50
   timeout: 180
   requestsCpu: 100m
-  requestsMemory: 1000Mi
+  requestsMemory: 1000M
   limitsCpu: "2"
-  limitsMemory: 1200Mi
+  limitsMemory: 1200M
   downlinkLimit: 30000
   uplinkLimit: 30000
   mountPath: /home/henkan/project

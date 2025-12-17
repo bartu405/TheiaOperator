@@ -63,12 +63,7 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-        if (spec.storage.isNullOrBlank()) {
-            status.operatorStatus = "Error"
-            status.operatorMessage = "spec.storage is required"
-            status.error = "spec.storage must be set"
-            return UpdateControl.patchStatus(resource)
-        }
+
 
 
         var metadataChanged = false
@@ -89,7 +84,11 @@ class WorkspaceReconciler(
         val projectNameRaw     = labels["app.henkan.io/henkanProjectName"] ?: spec.label
         val userRaw            = labels["app.henkan.io/workspaceUser"] ?: spec.user
 
-        putIfMissing("app.henkan.io/workspaceName", toHenkanLabelValue(uiWorkspaceNameRaw) ?: toHenkanLabelValue(spec.name))
+        val fallbackUiName = deriveWorkspaceShortName(spec.name!!, spec.user!!)
+        putIfMissing("app.henkan.io/workspaceName",
+            toHenkanLabelValue(uiWorkspaceNameRaw) ?: toHenkanLabelValue(fallbackUiName)
+        )
+
         putIfMissing("app.henkan.io/workspaceUser", toHenkanLabelValue(userRaw))
         putIfMissing("app.henkan.io/henkanProjectName", toHenkanLabelValue(projectNameRaw))
 

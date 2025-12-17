@@ -14,6 +14,7 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
+import ownerRef
 import java.io.ByteArrayInputStream
 
 @ControllerConfiguration(
@@ -286,6 +287,20 @@ class SessionReconciler(
         val runAsUid = appSpec.uid ?: defaultUid
         val fsGroupUid = appSpec.uid ?: defaultUid
 
+
+        val appLabel = toHenkanLabelValue("${nonNullSessionName}-${sessionUid}") ?: "${nonNullSessionName}-${sessionUid}"
+
+        // --- 4.9) Check for ingress existence
+        val ingressName = ingressNameForAppDef(appDef)
+        val ingressClient = client.network().v1().ingresses().inNamespace(ns)
+        val existingIngress = ingressClient.withName(ingressName).get()
+        if (existingIngress == null) {
+            return failStatus(resource, "Shared Ingress '$ingressName' is missing. Create it first.")
+        }
+
+
+
+
         // --- 5) Ensure Deployment + Service + SHARED Ingress
         ensureTheiaDeployment(
             ns,
@@ -313,6 +328,7 @@ class SessionReconciler(
             sessionUid = sessionUid,
             owner = resource,
             pvcName = workspacePvcName,
+            appLabel = appLabel,
         )
 
         ensureTheiaService(
@@ -320,19 +336,17 @@ class SessionReconciler(
             sessionName = nonNullSessionName,
             port = port,
             owner = resource,
-            monitorPort = monitorPort,
-            appLabel = "theia",
+            appLabel = appLabel,
             appDefinitionName = nonNullAppDefName,
             user = user,
-            sessionUid = sessionUid
         )
 
-        val ingressName = ingressNameForAppDef(appDef)
         ensureSharedIngressForSession(
             session = resource,
             serviceName = serviceName,
             ingressName = ingressName,
-            appDef = appDef
+            appDef = appDef,
+            port = port
         )
 
 
@@ -432,6 +446,8 @@ class SessionReconciler(
             }
         }.toMutableList()
 
+
+
         if (!changed) {
             log.info(
                 "No matching path {} on host {} in Ingress '{}', nothing to change",
@@ -440,11 +456,13 @@ class SessionReconciler(
             return DeleteControl.defaultDelete()
         }
 
+        val normalized = normalizeIngressRules(newRules)
         val updatedIngress = IngressBuilder(ingress)
             .editOrNewSpec()
-            .withRules(newRules)
+            .withRules(normalized)
             .endSpec()
             .build()
+
 
         ingressClient.resource(updatedIngress).createOrReplace()
 
@@ -459,7 +477,7 @@ class SessionReconciler(
         ingressHost
 
     private fun sessionPath(session: Session): String =
-        "/${session.metadata?.uid}/"
+        "/${session.metadata?.uid}(/|$)(.*)"
 
     // === Status & error handling ===========================================================
 
@@ -507,6 +525,7 @@ class SessionReconciler(
         sessionUid: String,
         owner: Session,
         pvcName: String,
+        appLabel: String,
     ) {
         val deploymentName = "theia-$sessionName"
 
@@ -546,7 +565,8 @@ class SessionReconciler(
                 "uplinkLimit" to uplinkLimit,
                 "appDefinitionName" to appDefinitionName,
                 "user" to user,
-                "sessionUid" to sessionUid
+                "sessionUid" to sessionUid,
+                "appLabel" to appLabel
             )
         )
 
@@ -562,11 +582,9 @@ class SessionReconciler(
         sessionName: String,
         port: Int,
         owner: Session,
-        monitorPort: Int? = null,
         appLabel: String = "theia",
         appDefinitionName: String,
         user: String,
-        sessionUid: String,
     ) {
         val yaml = TemplateRenderer.render(
             "templates/theia-service.yaml.vm",
@@ -577,11 +595,9 @@ class SessionReconciler(
                 "serviceType" to "ClusterIP",
                 "servicePort" to port,
                 "targetPort" to port,
-                "monitorPort" to monitorPort,
                 "appLabel" to appLabel,
                 "appDefinitionName" to appDefinitionName,
                 "user" to user,
-                "sessionUid" to sessionUid,
             )
         )
 
@@ -600,7 +616,8 @@ class SessionReconciler(
         session: Session,
         serviceName: String,
         ingressName: String,
-        appDef: AppDefinition
+        appDef: AppDefinition,
+        port: Int
     ) {
         val ns = session.metadata?.namespace ?: "default"
         val host = sessionHost(session)
@@ -608,74 +625,26 @@ class SessionReconciler(
 
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
         val existing = ingressClient.withName(ingressName).get()
+            ?: throw IllegalStateException("Shared Ingress '$ingressName' is missing") // should not happen because you check earlier
 
-        if (existing == null) {
-            log.info(
-                "Shared Ingress '{}' not found in {}, creating new with path {} -> service {}",
-                ingressName, ns, path, serviceName
-            )
-
-            val ingress = IngressBuilder()
-                .withNewMetadata()
-                .withName(ingressName)
-                .addToLabels("app", "theia")
-                // IMPORTANT: owner is the AppDefinition now
-                .withOwnerReferences(controllerOwnerRef(appDef))
-                .endMetadata()
-                .withNewSpec()
-                .addNewRule()
-                .withHost(host)
-                .withNewHttp()
-                .addNewPath()
-                .withPath(path)
-                .withPathType("Prefix")
-                .withNewBackend()
-                .withNewService()
-                .withName(serviceName)
-                .withNewPort().withName(SERVICE_PORT_NAME).endPort()
-                .endService()
-                .endBackend()
-                .endPath()
-                .endHttp()
-                .endRule()
-                .endSpec()
-                .build()
-
-            // enforce AppDefinition as the ONLY controller owner
-            val meta = ingress.metadata
-
-            val cleaned = (meta?.ownerReferences ?: emptyList())
-                .filterNot { ref -> ref.controller == true }
-                .toMutableList()
-
-            cleaned.add(controllerOwnerRef(appDef))
-            meta?.ownerReferences = cleaned
-
-
-            ingressClient.resource(ingress).createOrReplace()
-            return
-        }
-
-        // Update existing shared Ingress for this AppDefinition
         val ingress = IngressBuilder(existing).build()
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
 
-        val ruleIndex = rules.indexOfFirst { it.host == host }
+        // Prefer a rule with http; do NOT hijack a host-only rule
+        var ruleIndex = rules.indexOfFirst { it.host == host && it.http != null }
+
         if (ruleIndex == -1) {
-            log.info(
-                "Adding new host rule {} with path {} -> {} to Ingress '{}'",
-                host, path, serviceName, ingressName
-            )
+            // No http rule yet -> add a new one, keep existing host-only rule untouched
             val newRule = IngressRuleBuilder()
                 .withHost(host)
                 .withNewHttp()
                 .addNewPath()
                 .withPath(path)
-                .withPathType("Prefix")
+                .withPathType("ImplementationSpecific")
                 .withNewBackend()
                 .withNewService()
                 .withName(serviceName)
-                .withNewPort().withName(SERVICE_PORT_NAME).endPort()
+                .withNewPort().withNumber(port).endPort()
                 .endService()
                 .endBackend()
                 .endPath()
@@ -684,50 +653,59 @@ class SessionReconciler(
             rules.add(newRule)
         } else {
             val rule = rules[ruleIndex]
-            val http = rule.http
-            val paths = http?.paths?.toMutableList() ?: mutableListOf()
-            val existingPathIndex = paths.indexOfFirst { it.path == path }
+            val paths = rule.http?.paths?.toMutableList() ?: mutableListOf()
 
+            val existingPathIndex = paths.indexOfFirst { it.path == path }
             if (existingPathIndex == -1) {
-                log.info(
-                    "Adding new path {} -> {} under host {} to Ingress '{}'",
-                    path, serviceName, host, ingressName
-                )
                 val newPath = HTTPIngressPathBuilder()
                     .withPath(path)
-                    .withPathType("Prefix")
+                    .withPathType("ImplementationSpecific")
                     .withNewBackend()
                     .withNewService()
                     .withName(serviceName)
-                    .withNewPort().withName(SERVICE_PORT_NAME).endPort()
+                    .withNewPort().withNumber(port).endPort()
                     .endService()
                     .endBackend()
                     .build()
                 paths.add(newPath)
             } else {
-                log.info(
-                    "Updating existing path {} under host {} in Ingress '{}' to point to {}",
-                    path, host, ingressName, serviceName
-                )
                 val existingPath = paths[existingPathIndex]
                 existingPath.backend?.service?.name = serviceName
-                existingPath.backend?.service?.port?.name = SERVICE_PORT_NAME
+                existingPath.backend?.service?.port?.number = port
+                existingPath.backend?.service?.port?.name = null
             }
 
-            // IMPORTANT: rebuild the rule so that http is created if it was null
-            val newRule = IngressRuleBuilder(rule)
+            rules[ruleIndex] = IngressRuleBuilder(rule)
                 .editOrNewHttp()
                 .withPaths(paths)
                 .endHttp()
                 .build()
-
-            rules[ruleIndex] = newRule
         }
 
-
-        ingress.spec?.setRules(rules)
+        val normalized = normalizeIngressRules(rules)
+        ingress.spec?.rules = normalized
         ingressClient.resource(ingress).createOrReplace()
-
     }
+
+    private fun normalizeIngressRules(rules: List<io.fabric8.kubernetes.api.model.networking.v1.IngressRule>):
+            MutableList<io.fabric8.kubernetes.api.model.networking.v1.IngressRule> {
+
+        val out = mutableListOf<io.fabric8.kubernetes.api.model.networking.v1.IngressRule>()
+        val seenHostOnly = mutableSetOf<String>()
+
+        for (r in rules) {
+            val host = r.host ?: ""
+            if (r.http == null) {
+                if (seenHostOnly.add(host)) {
+                    out.add(r)
+                }
+            } else {
+                out.add(r)
+            }
+        }
+        return out
+    }
+
+
 
 }
