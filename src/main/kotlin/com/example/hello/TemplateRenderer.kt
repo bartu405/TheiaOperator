@@ -6,9 +6,6 @@ import org.apache.velocity.app.VelocityEngine
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader
 import java.io.StringWriter
 
-// You will call this like
-// TemplateRenderer.render("", mapOf(...))
-
 object TemplateRenderer {
 
     private val engine: VelocityEngine = VelocityEngine().apply {

@@ -19,6 +19,4 @@ fun ownerRef(owner: HasMetadata): OwnerReference =
         .withKind(owner.kind)
         .withName(owner.metadata.name)
         .withUid(owner.metadata.uid)
-        // DO NOT set controller=true
-        // DO NOT set blockOwnerDeletion=true
         .build()

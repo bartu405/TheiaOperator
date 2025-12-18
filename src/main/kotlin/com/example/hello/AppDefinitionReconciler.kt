@@ -22,6 +22,7 @@ class AppDefinitionReconciler(
         if (resource.status == null) resource.status = AppDefinitionStatus()
         val status = resource.status!!
 
+        // ensure spec exists
         val spec = resource.spec
         if (spec == null) {
             status.operatorStatus = "Error"

@@ -11,29 +11,21 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import controllerOwnerRef
 import org.slf4j.LoggerFactory
 
-/**
- * Key change vs your previous version:
- * - DO NOT update the primary Workspace CR via client.edit() inside reconcile (causes 409 conflicts).
- * - Instead, mutate the in-memory `resource` (spec/metadata/status) and return one UpdateControl
- *   (patchResourceAndStatus) to persist everything in a single write.
- */
+/*
+1. **Generates storage names** rather than requiring them upfront
+2. **Updates the workspace spec** with the generated storage name
+3. **Sets appropriate status** at each stage like Theia Cloud does
+4. **Includes a `hasStorage()`** helper method like in Theia Cloud
+5. **Maintains ownership relationships** between resources
 
-//Previous version:
-//This updated implementation:
-//1. **Generates storage names** rather than requiring them upfront
-//2. **Updates the workspace spec** with the generated storage name
-//3. **Sets appropriate status** at each stage like Theia Cloud does
-//4. **Includes a `hasStorage()`** helper method like in Theia Cloud
-//5. **Maintains ownership relationships** between resources
-//
-//Key Theia Cloud-like behaviors:
-//- The storage field isn't required upfront - it gets generated and set during reconciliation
-//- Progress is tracked with detailed status updates
-//- The storage name follows a predictable pattern based on the workspace name
-//- Owner references ensure proper resource lifecycle management
-//- The PVC is properly labeled for identification
-//
-//The code now handles both cases: workspaces that don't yet have storage defined, and existing workspaces that already have storage configured.
+Key Theia Cloud-like behaviors:
+- The storage field isn't required upfront - it gets generated and set during reconciliation
+- Progress is tracked with detailed status updates
+- The storage name follows a predictable pattern based on the workspace name
+- Owner references ensure proper resource lifecycle management
+- The PVC is properly labeled for identification
+- The code now handles both cases: workspaces that don't yet have storage defined, and existing workspaces that already have storage configured.
+*/
 
 @ControllerConfiguration(
     name = "workspace-controller"
