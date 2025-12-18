@@ -1,32 +1,27 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  creationTimestamp: "2025-12-17T12:53:18Z"
-  generation: 1
-  labels:
-    app: theia
-  name: sample-app
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/proxy-body-size":"1m","nginx.ingress.kubernetes.io/proxy-buffer-size":"128k","nginx.ingress.kubernetes.io/rewrite-target":"/$2","nginx.ingress.kubernetes.io/use-regex":"true"},"name":"sample-app-ingress","namespace":"default"},"spec":{"ingressClassName":"nginx","rules":[{"host":"theia.localtest.me"}]}}
+    nginx.ingress.kubernetes.io/proxy-body-size: 1m
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  creationTimestamp: "2025-12-18T10:42:07Z"
+  generation: 7
+  name: sample-app-ingress
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
-      blockOwnerDeletion: true
-      controller: true
       kind: AppDefinition
       name: sample-app
-      uid: 5c501d79-c334-4fc3-8373-119471b852b9
-  resourceVersion: "1875741"
-  uid: 0cba3086-a5c7-46c3-8754-471f340a23a1
+      uid: 012aebb0-f89a-42cd-9e6c-5045c6d095de
+  resourceVersion: "1936980"
+  uid: 186878fd-9d33-49e7-bf48-b253417be1f9
 spec:
+  ingressClassName: nginx
   rules:
     - host: theia.localtest.me
-      http:
-        paths:
-          - backend:
-              service:
-                name: theia-bartu-demo-ws
-                port:
-                  name: http
-            path: /e69e7867-60d9-4ec7-bbb5-900d2d438e2e/
-            pathType: Prefix
 status:
   loadBalancer: {}

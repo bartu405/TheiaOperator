@@ -6,7 +6,7 @@ metadata:
     pv.kubernetes.io/bound-by-controller: "yes"
     volume.beta.kubernetes.io/storage-provisioner: docker.io/hostpath
     volume.kubernetes.io/storage-provisioner: docker.io/hostpath
-  creationTimestamp: "2025-12-17T12:53:17Z"
+  creationTimestamp: "2025-12-18T11:02:39Z"
   finalizers:
     - kubernetes.io/pvc-protection
   labels:
@@ -16,7 +16,7 @@ metadata:
     app.henkan.io/workspaceUser: bartu
     theia-cloud.io/workspace-name: bartu-demo-ws
     workspace-name: bartu-demo-ws
-  name: bartu-demo-ws
+  name: ws-storage-bartu-demo-ws
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
@@ -24,9 +24,9 @@ metadata:
       controller: true
       kind: Workspace
       name: bartu-demo-ws
-      uid: c4ed3ad0-1228-4c1c-a3c4-54d3f6c39124
-  resourceVersion: "1875719"
-  uid: 9f896ffc-cd4e-4d49-9d62-d394bbda4ff2
+      uid: c1e64a80-6b7a-435d-90ee-fbb405f148e1
+  resourceVersion: "1937095"
+  uid: 32856241-75b2-40c0-b73c-2d8fc5faca15
 spec:
   accessModes:
     - ReadWriteOnce
@@ -35,7 +35,7 @@ spec:
       storage: 5Gi
   storageClassName: hostpath
   volumeMode: Filesystem
-  volumeName: pvc-9f896ffc-cd4e-4d49-9d62-d394bbda4ff2
+  volumeName: pvc-32856241-75b2-40c0-b73c-2d8fc5faca15
 status:
   accessModes:
     - ReadWriteOnce

@@ -3,9 +3,9 @@ kind: Workspace
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"example.suleyman.io/v1","kind":"Workspace","metadata":{"annotations":{},"labels":{"app.henkan.io/henkanProjectName":"bartu-demo-workspace","app.henkan.io/workspaceName":"demo-ws","app.henkan.io/workspaceUser":"bartu"},"name":"bartu-demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","label":"bartu-demo-workspace","name":"bartu-demo-ws","storage":"bartu-demo-ws","user":"bartu"}}
-  creationTimestamp: "2025-12-17T12:53:17Z"
-  generation: 1
+      {"apiVersion":"example.suleyman.io/v1","kind":"Workspace","metadata":{"annotations":{},"labels":{"app.henkan.io/henkanProjectName":"bartu-demo-workspace","app.henkan.io/workspaceName":"demo-ws","app.henkan.io/workspaceUser":"bartu"},"name":"bartu-demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","label":"bartu-demo-workspace","name":"bartu-demo-ws","user":"bartu"}}
+  creationTimestamp: "2025-12-18T10:42:08Z"
+  generation: 2
   labels:
     app.henkan.io/henkanProjectName: bartu-demo-workspace
     app.henkan.io/workspaceName: demo-ws
@@ -18,14 +18,14 @@ metadata:
       controller: true
       kind: AppDefinition
       name: sample-app
-      uid: 5c501d79-c334-4fc3-8373-119471b852b9
-  resourceVersion: "1875718"
-  uid: c4ed3ad0-1228-4c1c-a3c4-54d3f6c39124
+      uid: 012aebb0-f89a-42cd-9e6c-5045c6d095de
+  resourceVersion: "1933848"
+  uid: af5f73a0-6d79-4b65-b238-4b516cb28f2f
 spec:
   appDefinition: sample-app
   label: bartu-demo-workspace
   name: bartu-demo-ws
-  storage: bartu-demo-ws
+  storage: ws-storage-bartu-demo-ws
   user: bartu
 status:
   operatorMessage: Workspace reconciled successfully

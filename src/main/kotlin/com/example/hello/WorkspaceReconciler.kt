@@ -10,6 +10,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import controllerOwnerRef
 import org.slf4j.LoggerFactory
+import java.time.Duration
 
 /*
 1. **Generates storage names** rather than requiring them upfront
@@ -151,6 +152,16 @@ class WorkspaceReconciler(
 
         // Map internal PVC result to Henkan-style status fields
         val volumeStatus = pvcResult.volumeStatus
+        if (volumeStatus.status == "Deleting") {
+            status.volumeClaim = VolumeStatus(status = "started", message = volumeStatus.message)
+            status.volumeAttach = VolumeStatus(status = "started", message = "waiting for PVC deletion")
+            status.operatorStatus = "HANDLING"
+            status.operatorMessage = volumeStatus.message
+            status.error = null
+
+            return UpdateControl.patchStatus(resource)
+                .rescheduleAfter(Duration.ofSeconds(2))
+        }
         if (volumeStatus.status == "Created" || volumeStatus.status == "Exists") {
             status.volumeClaim = VolumeStatus(status = "finished", message = "")
             status.volumeAttach = VolumeStatus(status = "finished", message = "")
@@ -228,6 +239,18 @@ class WorkspaceReconciler(
 
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
+
+        // ✅ If it's terminating, do NOT report success. Keep reconciling until it's gone.
+        if (existing != null && existing.metadata?.deletionTimestamp != null) {
+            log.warn("PVC {}/{} is terminating; waiting before recreating", ns, pvcName)
+            return EnsurePvcResult(
+                volumeStatus = VolumeStatus(
+                    status = "Deleting",
+                    message = "PVC '$pvcName' is terminating"
+                ),
+                storageUpdated = storageUpdated
+            )
+        }
 
         // For now, fixed default size.
         val size = "5Gi"

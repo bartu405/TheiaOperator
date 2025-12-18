@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: "2025-12-17T13:42:10Z"
+  creationTimestamp: "2025-12-18T11:06:15Z"
   labels:
-    app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+    app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
     theia-cloud.io/app-definition: sample-app
@@ -17,13 +17,13 @@ metadata:
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-  resourceVersion: "1883119"
-  uid: 1141b15d-742d-4eb7-b8de-132656b3dafd
+      uid: d20d3875-1b30-4482-bb62-c093ce10461b
+  resourceVersion: "1937652"
+  uid: 7bf941b0-d31a-4762-a92a-0395dbde225b
 spec:
-  clusterIP: 10.103.106.60
+  clusterIP: 10.109.45.214
   clusterIPs:
-    - 10.103.106.60
+    - 10.109.45.214
   internalTrafficPolicy: Cluster
   ipFamilies:
     - IPv4
@@ -34,7 +34,7 @@ spec:
       protocol: TCP
       targetPort: web
   selector:
-    app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+    app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
   sessionAffinity: None
   type: ClusterIP
 status:

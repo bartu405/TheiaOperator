@@ -1,182 +1,187 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  annotations:
-    deployment.kubernetes.io/revision: "1"
-  creationTimestamp: "2025-12-17T13:42:09Z"
-  generation: 1
-  labels:
-    app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-    app.kubernetes.io/component: session
-    app.kubernetes.io/part-of: theia-cloud
-    session-name: bartu-demo-ws
-    theia-cloud.io/app-definition: sample-app
-    theia-cloud.io/session: bartu-demo-ws
-    theia-cloud.io/session-uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-    theia-cloud.io/session-uuid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-    theia-cloud.io/user: bartu
-  name: theia-bartu-demo-ws
-  namespace: default
-  ownerReferences:
-    - apiVersion: example.suleyman.io/v1
-      blockOwnerDeletion: true
-      controller: true
-      kind: Session
-      name: bartu-demo-ws
-      uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-  resourceVersion: "1883139"
-  uid: 74bf3485-641b-4236-9c92-ffba4a72e3ea
-spec:
-  progressDeadlineSeconds: 600
-  replicas: 1
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-      session-name: bartu-demo-ws
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
-  template:
+apiVersion: v1
+items:
+  - apiVersion: apps/v1
+    kind: Deployment
     metadata:
       annotations:
-        kubernetes.io/egress-bandwidth: 30000k
-        kubernetes.io/ingress-bandwidth: 30000k
-      creationTimestamp: null
+        deployment.kubernetes.io/revision: "1"
+      creationTimestamp: "2025-12-18T11:06:15Z"
+      generation: 1
       labels:
-        app: bartu-demo-ws-5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+        app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
         app.kubernetes.io/component: session
         app.kubernetes.io/part-of: theia-cloud
         session-name: bartu-demo-ws
         theia-cloud.io/app-definition: sample-app
         theia-cloud.io/session: bartu-demo-ws
-        theia-cloud.io/session-uid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-        theia-cloud.io/session-uuid: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
+        theia-cloud.io/session-uid: d20d3875-1b30-4482-bb62-c093ce10461b
+        theia-cloud.io/session-uuid: d20d3875-1b30-4482-bb62-c093ce10461b
         theia-cloud.io/user: bartu
+      name: theia-bartu-demo-ws
+      namespace: default
+      ownerReferences:
+        - apiVersion: example.suleyman.io/v1
+          blockOwnerDeletion: true
+          controller: true
+          kind: Session
+          name: bartu-demo-ws
+          uid: d20d3875-1b30-4482-bb62-c093ce10461b
+      resourceVersion: "1937682"
+      uid: 03a68890-5f53-4833-9b25-4b5a90a22717
     spec:
-      automountServiceAccountToken: false
-      containers:
-        - args:
-            - --config=/etc/oauth2-proxy.cfg
-            - --authenticated-emails-file=/emails/authenticated-emails-list
-            - --gcp-healthchecks
-            - --reverse-proxy
-            - --skip-auth-route=/monitor/*
-          image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
-          imagePullPolicy: IfNotPresent
-          name: oauth2-proxy
-          ports:
-            - containerPort: 5000
-              name: web
-              protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /etc/oauth2-proxy.cfg
-              name: oauth2-proxy-config
-              subPath: oauth2-proxy.cfg
-            - mountPath: /templates
-              name: oauth2-templates
-            - mountPath: /emails
-              name: oauth2-emails
-        - env:
-            - name: THEIACLOUD_APP_ID
-              value: sample-app
-            - name: THEIACLOUD_SERVICE_URL
-              value: http://theia-bartu-demo-ws:3000
-            - name: THEIACLOUD_SESSION_UID
-              value: 5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1
-            - name: THEIACLOUD_SESSION_NAME
-              value: bartu-demo-ws
-            - name: THEIACLOUD_SESSION_USER
-              value: bartu
-            - name: THEIACLOUD_SESSION_URL
-              value: http://theia.localtest.me/5cfdce35-b1bf-4b21-8b43-99c7fe6ad5d1/
-            - name: THEIACLOUD_SESSION_SECRET
-              value: henkansecret
-            - name: COMMIT_GENAI_ENDPOINT
-              value: https://example.com/webhook/xyz
-            - name: EMAIL
-              value: bartu@globalmaksimum.com
-            - name: GIT_AUTHOR_NAME
-              value: bartu
-            - name: GIT_SSL_NO_VERIFY
-              value: "true"
-            - name: HENKAN_GIT_EMAIL
-              value: bartu@globalmaksimum.com
-            - name: HENKAN_GIT_USER
-              value: bartu
-            - name: HENKAN_META_API_URL
-              value: http://henkan-metaapi.henkan-metaapi
-            - name: HENKAN_PROJECT_GIT_URL
-              value: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
-            - name: HENKAN_PROJECT_NAME
-              value: busra
-          image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
-          imagePullPolicy: IfNotPresent
-          name: theia
-          ports:
-            - containerPort: 3000
-              name: application
-              protocol: TCP
-          resources:
-            limits:
-              cpu: "2"
-              memory: 1200Mi
-            requests:
-              cpu: 100m
-              memory: 1000Mi
+      progressDeadlineSeconds: 600
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
+          session-name: bartu-demo-ws
+      strategy:
+        rollingUpdate:
+          maxSurge: 25%
+          maxUnavailable: 25%
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            kubernetes.io/egress-bandwidth: 30000k
+            kubernetes.io/ingress-bandwidth: 30000k
+          creationTimestamp: null
+          labels:
+            app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
+            app.kubernetes.io/component: session
+            app.kubernetes.io/part-of: theia-cloud
+            session-name: bartu-demo-ws
+            theia-cloud.io/app-definition: sample-app
+            theia-cloud.io/session: bartu-demo-ws
+            theia-cloud.io/session-uid: d20d3875-1b30-4482-bb62-c093ce10461b
+            theia-cloud.io/session-uuid: d20d3875-1b30-4482-bb62-c093ce10461b
+            theia-cloud.io/user: bartu
+        spec:
+          automountServiceAccountToken: false
+          containers:
+            - args:
+                - --config=/etc/oauth2-proxy.cfg
+                - --authenticated-emails-file=/emails/authenticated-emails-list
+                - --gcp-healthchecks
+                - --reverse-proxy
+                - --skip-auth-route=/monitor/*
+              image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+              imagePullPolicy: IfNotPresent
+              name: oauth2-proxy
+              ports:
+                - containerPort: 5000
+                  name: web
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /etc/oauth2-proxy.cfg
+                  name: oauth2-proxy-config
+                  subPath: oauth2-proxy.cfg
+                - mountPath: /templates
+                  name: oauth2-templates
+                - mountPath: /emails
+                  name: oauth2-emails
+            - env:
+                - name: THEIACLOUD_APP_ID
+                  value: sample-app
+                - name: THEIACLOUD_SERVICE_URL
+                  value: http://theia-bartu-demo-ws:3000
+                - name: THEIACLOUD_SESSION_UID
+                  value: d20d3875-1b30-4482-bb62-c093ce10461b
+                - name: THEIACLOUD_SESSION_NAME
+                  value: bartu-demo-ws
+                - name: THEIACLOUD_SESSION_USER
+                  value: bartu
+                - name: THEIACLOUD_SESSION_URL
+                  value: http://theia.localtest.me/d20d3875-1b30-4482-bb62-c093ce10461b/
+                - name: THEIACLOUD_SESSION_SECRET
+                  value: henkansecret
+                - name: COMMIT_GENAI_ENDPOINT
+                  value: https://example.com/webhook/xyz
+                - name: EMAIL
+                  value: bartu@globalmaksimum.com
+                - name: GIT_AUTHOR_NAME
+                  value: bartu
+                - name: GIT_SSL_NO_VERIFY
+                  value: "true"
+                - name: HENKAN_GIT_EMAIL
+                  value: bartu@globalmaksimum.com
+                - name: HENKAN_GIT_USER
+                  value: bartu
+                - name: HENKAN_META_API_URL
+                  value: http://henkan-metaapi.henkan-metaapi
+                - name: HENKAN_PROJECT_GIT_URL
+                  value: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
+                - name: HENKAN_PROJECT_NAME
+                  value: busra
+              image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
+              imagePullPolicy: IfNotPresent
+              name: theia
+              ports:
+                - containerPort: 3000
+                  name: application
+                  protocol: TCP
+              resources:
+                limits:
+                  cpu: "2"
+                  memory: 1200Mi
+                requests:
+                  cpu: 100m
+                  memory: 1000Mi
+              securityContext:
+                runAsGroup: 101
+                runAsUser: 101
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /home/henkan/project
+                  name: workspace
+          dnsPolicy: ClusterFirst
+          imagePullSecrets:
+            - name: regcred
+          restartPolicy: Always
+          schedulerName: default-scheduler
           securityContext:
-            runAsGroup: 101
-            runAsUser: 101
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /home/henkan/project
-              name: workspace
-      dnsPolicy: ClusterFirst
-      imagePullSecrets:
-        - name: regcred
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext:
-        fsGroup: 101
-      terminationGracePeriodSeconds: 30
-      volumes:
-        - name: workspace
-          persistentVolumeClaim:
-            claimName: bartu-demo-ws
-        - configMap:
-            defaultMode: 420
-            name: theia-oauth2-proxy-config
-          name: oauth2-proxy-config
-        - configMap:
-            defaultMode: 420
-            name: oauth2-templates
-          name: oauth2-templates
-        - configMap:
-            defaultMode: 420
-            name: theia-oauth2-emails
-          name: oauth2-emails
-status:
-  availableReplicas: 1
-  conditions:
-    - lastTransitionTime: "2025-12-17T13:42:11Z"
-      lastUpdateTime: "2025-12-17T13:42:11Z"
-      message: Deployment has minimum availability.
-      reason: MinimumReplicasAvailable
-      status: "True"
-      type: Available
-    - lastTransitionTime: "2025-12-17T13:42:09Z"
-      lastUpdateTime: "2025-12-17T13:42:11Z"
-      message: ReplicaSet "theia-bartu-demo-ws-74c5fdcfd6" has successfully progressed.
-      reason: NewReplicaSetAvailable
-      status: "True"
-      type: Progressing
-  observedGeneration: 1
-  readyReplicas: 1
-  replicas: 1
-  updatedReplicas: 1
+            fsGroup: 101
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: workspace
+              persistentVolumeClaim:
+                claimName: ws-storage-bartu-demo-ws
+            - configMap:
+                defaultMode: 420
+                name: theia-oauth2-proxy-config
+              name: oauth2-proxy-config
+            - configMap:
+                defaultMode: 420
+                name: oauth2-templates
+              name: oauth2-templates
+            - configMap:
+                defaultMode: 420
+                name: theia-oauth2-emails
+              name: oauth2-emails
+    status:
+      availableReplicas: 1
+      conditions:
+        - lastTransitionTime: "2025-12-18T11:06:16Z"
+          lastUpdateTime: "2025-12-18T11:06:16Z"
+          message: Deployment has minimum availability.
+          reason: MinimumReplicasAvailable
+          status: "True"
+          type: Available
+        - lastTransitionTime: "2025-12-18T11:06:15Z"
+          lastUpdateTime: "2025-12-18T11:06:16Z"
+          message: ReplicaSet "theia-bartu-demo-ws-78d4fcbcb8" has successfully progressed.
+          reason: NewReplicaSetAvailable
+          status: "True"
+          type: Progressing
+      observedGeneration: 1
+      readyReplicas: 1
+      replicas: 1
+      updatedReplicas: 1
+kind: List
+metadata:
+  resourceVersion: ""
