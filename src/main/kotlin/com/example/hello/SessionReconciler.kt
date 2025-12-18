@@ -120,6 +120,9 @@ class SessionReconciler(
                 .filter { it.spec?.user == user }
                 .filter { it.metadata?.uid != resource.metadata?.uid }
                 .filter { it.status?.operatorStatus == "HANDLED" }
+                .filter { it.metadata?.deletionTimestamp == null }
+
+
 
             val activeCount = allUserSessions.size
 
@@ -229,11 +232,16 @@ class SessionReconciler(
         val sessionEnvMap = spec.envVars ?: emptyMap()
 
         val appId = appSpec.name ?: appDef.metadata?.name ?: nonNullAppDefName
-        val serviceName = "theia-$nonNullSessionName"
+
+        val sessionUid = resource.metadata?.uid
+            ?: return failStatus(resource, "Session UID is missing")
+
+        val sessionBaseName = sessionResourceBaseName(user, nonNullAppDefName, sessionUid)
+
+        val serviceName = sessionBaseName
         val serviceUrl = "http://$serviceName:$port"
 
-        // Use the Kubernetes UID of the Session as the path segment
-        val sessionUid = resource.metadata?.uid ?: ""
+
 
         // Henkan-like URLs:
         val sessionUrlForEnv = "http://$ingressHost/$sessionUid/"
@@ -311,12 +319,10 @@ class SessionReconciler(
             return failStatus(resource, "Shared Ingress '$ingressName' is missing. Create it first.")
         }
 
-
-
-
         // --- 5) Ensure Deployment + Service + SHARED Ingress
         ensureTheiaDeployment(
             ns,
+            deploymentName = sessionBaseName,
             nonNullSessionName,
             nonNullWorkspaceName,
             image,
@@ -346,6 +352,7 @@ class SessionReconciler(
 
         ensureTheiaService(
             namespace = ns,
+            serviceName = serviceName,
             sessionName = nonNullSessionName,
             port = port,
             owner = resource,
@@ -514,6 +521,7 @@ class SessionReconciler(
 
     private fun ensureTheiaDeployment(
         namespace: String,
+        deploymentName: String,
         sessionName: String,
         workspaceName: String,
         image: String,
@@ -540,7 +548,6 @@ class SessionReconciler(
         pvcName: String,
         appLabel: String,
     ) {
-        val deploymentName = "theia-$sessionName"
 
         log.info(
             "Ensuring Deployment {} in ns {} using PVC {}",
@@ -592,6 +599,7 @@ class SessionReconciler(
 
     private fun ensureTheiaService(
         namespace: String,
+        serviceName: String,
         sessionName: String,
         port: Int,
         owner: Session,
@@ -603,7 +611,7 @@ class SessionReconciler(
             "templates/theia-service.yaml.vm",
             mapOf(
                 "namespace" to namespace,
-                "serviceName" to "theia-$sessionName",
+                "serviceName" to serviceName,
                 "sessionName" to sessionName,
                 "serviceType" to "ClusterIP",
                 "servicePort" to port,
@@ -719,6 +727,16 @@ class SessionReconciler(
         return out
     }
 
+    private fun toK8sName(value: String): String =
+        value.lowercase()
+            .replace(Regex("[^a-z0-9-]"), "-")
+            .replace(Regex("-+"), "-")
+            .trim('-')
+            .take(253)
 
+    private fun sessionResourceBaseName(user: String, appDefName: String, sessionUid: String): String {
+        val uidSuffix = sessionUid.substringAfterLast('-')
+        return toK8sName("session-$user-$appDefName-$uidSuffix")
+    }
 
 }

@@ -5,15 +5,12 @@ metadata:
   name: ${serviceName}
   namespace: ${namespace}
   labels:
-
-
     app: ${appLabel}
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
     theia-cloud.io/app-definition: ${appDefinitionName}
     theia-cloud.io/session: ${sessionName}
     theia-cloud.io/user: ${user}
-
 
 spec:
   type: ${serviceType}

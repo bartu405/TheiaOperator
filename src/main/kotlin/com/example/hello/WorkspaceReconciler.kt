@@ -366,15 +366,24 @@ class WorkspaceReconciler(
      * Generates a storage name for a workspace following a predictable pattern.
      */
     private fun generateStorageName(workspace: Workspace): String {
-        val wsName = workspace.metadata?.name ?: throw IllegalArgumentException("Workspace has no name")
-        val sanitizedName = wsName
-            .lowercase()
-            .replace(Regex("[^a-z0-9-]"), "-")
-            .replace(Regex("-+"), "-")
-            .trim('-')
-            .take(40)
-        return "ws-storage-$sanitizedName"
+        val user = workspace.spec?.user ?: throw IllegalArgumentException("Workspace spec.user missing")
+        val appDef = workspace.spec?.appDefinition ?: throw IllegalArgumentException("Workspace spec.appDefinition missing")
+        val uid = workspace.metadata?.uid ?: throw IllegalArgumentException("Workspace metadata.uid missing")
+
+        // Henkan lab: uses the last UUID segment (after the last dash)
+        val uidSuffix = uid.substringAfterLast('-')
+
+        fun sanitize(s: String): String =
+            s.lowercase()
+                .replace(Regex("[^a-z0-9-]"), "-")
+                .replace(Regex("-+"), "-")
+                .trim('-')
+
+        val name = "ws-${sanitize(user)}-${sanitize(appDef)}-${sanitize(uidSuffix)}"
+        // K8s name max is 253; keep safe
+        return name.take(253)
     }
+
 
     /**
      * Helper like Theia Cloud.
