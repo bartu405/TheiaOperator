@@ -16,6 +16,7 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
 import ownerRef
 import java.io.ByteArrayInputStream
+import java.time.Duration
 
 @ControllerConfiguration(
     name = "session-controller",
@@ -165,14 +166,26 @@ class SessionReconciler(
             .get()
             ?: return failStatus(resource, "Workspace '$nonNullWorkspaceName' not found in '$ns'")
 
-        // --- 2.5.1) Workspace must have a storage PVC name
+        // --- 2.5.1) Workspace must have a storage PVC name, wait until it is created
         val workspacePvcName = workspace.spec?.storage
         if (workspacePvcName.isNullOrBlank()) {
-            return failStatus(
-                resource,
-                "Workspace '$nonNullWorkspaceName' has no spec.storage (PVC name)"
-            )
+            val st = ensureStatus(resource)
+            st.operatorStatus = "HANDLING"
+            st.operatorMessage = "Waiting for Workspace '$nonNullWorkspaceName' to get spec.storage"
+            st.error = null
+            return UpdateControl.patchStatus(resource).rescheduleAfter(Duration.ofSeconds(2))
         }
+
+        val pvc = client.persistentVolumeClaims().inNamespace(ns).withName(workspacePvcName).get()
+        if (pvc == null || pvc.metadata?.deletionTimestamp != null) {
+            val st = ensureStatus(resource)
+            st.operatorStatus = "HANDLING"
+            st.operatorMessage = "Waiting for PVC '$workspacePvcName' to exist and not be terminating"
+            st.error = null
+            return UpdateControl.patchStatus(resource).rescheduleAfter(Duration.ofSeconds(2))
+        }
+
+
 
         var metadataChanged = false
 
