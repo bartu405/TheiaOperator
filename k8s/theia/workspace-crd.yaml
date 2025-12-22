@@ -35,7 +35,7 @@ spec:
                 label:
                   type: string
 
-                # Last app definition that ran on this workspace
+
                 appDefinition:
                   type: string
                   pattern: '^[a-z0-9A-Z-_]+$'
@@ -51,6 +51,7 @@ spec:
               required:
                 - name
                 - user
+                - appDefinition
             status:
               type: object
               properties:

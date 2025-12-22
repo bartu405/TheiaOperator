@@ -12,4 +12,3 @@ spec:
   label: bartu-demo-workspace
   appDefinition: sample-app
   user: bartu
-  # storage field can be omitted now

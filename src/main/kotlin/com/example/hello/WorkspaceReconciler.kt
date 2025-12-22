@@ -213,29 +213,20 @@ class WorkspaceReconciler(
 
         val ns = wsMeta.namespace ?: "default"
 
-        val pvcName = if (ws.hasStorage()) {
-            ws.spec!!.storage!!
-        } else {
-            try {
-                generateStorageName(ws)
-            } catch (e: Exception) {
-                return EnsurePvcResult(
-                    volumeStatus = VolumeStatus(
-                        status = "Error",
-                        message = "Failed to generate storage name: ${e.message}"
-                    ),
-                    storageUpdated = false
-                )
-            }
+        val pvcName = try {
+            TheiaNaming.workspaceStorageName(ws)
+        } catch (e: Exception) {
+            return EnsurePvcResult(
+                volumeStatus = VolumeStatus(status = "Error", message = "Failed to compute storage name: ${e.message}"),
+                storageUpdated = false
+            )
         }
+
+        val storageUpdated = (ws.spec?.storage != pvcName)
+        ws.spec!!.storage = pvcName
+
 
         log.info("Using PVC name '{}' for workspace {}", pvcName, wsName)
-
-        // If storage differs, update it on the in-memory CR (persisted by patchResourceAndStatus)
-        val storageUpdated = (ws.spec?.storage != pvcName)
-        if (storageUpdated) {
-            ws.spec!!.storage = pvcName
-        }
 
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
@@ -360,28 +351,6 @@ class WorkspaceReconciler(
             ),
             storageUpdated = storageUpdated
         )
-    }
-
-    /**
-     * Generates a storage name for a workspace following a predictable pattern.
-     */
-    private fun generateStorageName(workspace: Workspace): String {
-        val user = workspace.spec?.user ?: throw IllegalArgumentException("Workspace spec.user missing")
-        val appDef = workspace.spec?.appDefinition ?: throw IllegalArgumentException("Workspace spec.appDefinition missing")
-        val uid = workspace.metadata?.uid ?: throw IllegalArgumentException("Workspace metadata.uid missing")
-
-        // Henkan lab: uses the last UUID segment (after the last dash)
-        val uidSuffix = uid.substringAfterLast('-')
-
-        fun sanitize(s: String): String =
-            s.lowercase()
-                .replace(Regex("[^a-z0-9-]"), "-")
-                .replace(Regex("-+"), "-")
-                .trim('-')
-
-        val name = "ws-${sanitize(user)}-${sanitize(appDef)}-${sanitize(uidSuffix)}"
-        // K8s name max is 253; keep safe
-        return name.take(253)
     }
 
 

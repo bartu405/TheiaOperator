@@ -18,11 +18,11 @@ class SessionTimeoutReaper(
     private val scheduler = Executors.newSingleThreadScheduledExecutor()
 
     fun start() {
-        log.info("Starting SessionTimeoutReaper (runs every 1 minute)")
+        log.info("Starting SessionTimeoutReaper (runs every 3 minute)")
         scheduler.scheduleWithFixedDelay(
             { runOnceSafe() },
-            1, // initial delay (minutes)
-            1, // period (minutes)
+            3, // initial delay (minutes)
+            3, // period (minutes)
             TimeUnit.MINUTES
         )
     }
