@@ -1,10 +1,11 @@
-// File: Main.kt
 package com.example.hello
 
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.javaoperatorsdk.operator.Operator
 
-fun main() {
+fun main(args: Array<String>) {
+    val config = CliConfigParser.parse(args)
+
     val client = KubernetesClientBuilder().build()
 
     val operator = Operator { overrider ->
@@ -14,8 +15,8 @@ fun main() {
     }
 
     operator.register(AppDefinitionReconciler(client))
-    operator.register(WorkspaceReconciler(client))
-    operator.register(SessionReconciler(client))
+    operator.register(WorkspaceReconciler(client, config))
+    operator.register(SessionReconciler(client, config))
 
     SessionTimeoutReaper(client).start()
 

@@ -31,7 +31,8 @@ Key Theia Cloud-like behaviors:
     name = "workspace-controller"
 )
 class WorkspaceReconciler(
-    private val client: KubernetesClient
+    private val client: KubernetesClient,
+    private val config: OperatorConfig
 ) : Reconciler<Workspace> {
 
     private val log = LoggerFactory.getLogger(WorkspaceReconciler::class.java)
@@ -52,14 +53,16 @@ class WorkspaceReconciler(
         val opStatus = (status.operatorStatus ?: "NEW").uppercase()
         when (opStatus) {
             "HANDLED" -> return UpdateControl.noUpdate()
-            "HANDLING" -> {
-                status.operatorStatus = "ERROR"
-                status.operatorMessage = "Handling was unexpectedly interrupted before."
-                status.error = "Handling interrupted"
-                return UpdateControl.patchStatus(resource)
+            "HANDLING", "NEW" -> {
+                // continue reconciliation normally
             }
-            "ERROR" -> return UpdateControl.noUpdate()
+            "ERROR" -> {
+                // Optional: allow retry (recommended), or noUpdate if you want "manual intervention"
+                // I'd recommend continuing so it can self-heal:
+                // (do nothing here and continue)
+            }
         }
+
 
 
         val spec = resource.spec
@@ -182,8 +185,12 @@ class WorkspaceReconciler(
             status.operatorMessage = volumeStatus.message
             status.error = null
 
-            return UpdateControl.patchStatus(resource)
-                .rescheduleAfter(Duration.ofSeconds(2))
+            val ctl =
+                if (metadataChanged || specChanged) UpdateControl.patchResourceAndStatus(resource)
+                else UpdateControl.patchStatus(resource)
+
+            return ctl.rescheduleAfter(Duration.ofSeconds(2))
+
         }
 
         if (volumeStatus.status == "Exists") {
@@ -256,6 +263,8 @@ class WorkspaceReconciler(
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
 
+
+
         // ✅ If it's terminating, do NOT report success. Keep reconciling until it's gone.
         if (existing != null && existing.metadata?.deletionTimestamp != null) {
             log.warn("PVC {}/{} is terminating; waiting before recreating", ns, pvcName)
@@ -285,8 +294,9 @@ class WorkspaceReconciler(
 
 
         // For now, fixed default size.
-        val size = "5Gi"
-        val storageClassName: String? = null
+        val size = config.requestedStorage?.takeIf { it.isNotBlank() } ?: "5Gi"
+        val storageClassName = config.storageClassName?.takeIf { it.isNotBlank() }
+
 
         // --- Henkan-style label values derived from Workspace spec ---
         val spec = ws.spec!!
@@ -401,7 +411,7 @@ class WorkspaceReconciler(
             "namespace" to ns,
             "pvcName" to pvcName,
             "size" to size,
-            "storageClassName" to (storageClassName ?: ""),
+            "storageClassName" to storageClassName,
             "labels" to labels
         )
 

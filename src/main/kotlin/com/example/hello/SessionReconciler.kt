@@ -23,7 +23,8 @@ import java.time.Duration
     finalizerName = SessionReconciler.FINALIZER_NAME
 )
 class SessionReconciler(
-    private val client: KubernetesClient
+    private val client: KubernetesClient,
+    private val config: OperatorConfig
 ) : Reconciler<Session>, Cleaner<Session> {
 
     companion object {
@@ -36,15 +37,17 @@ class SessionReconciler(
                 ?: "theia-${appDef.metadata?.name ?: "unknown-app"}-ingress"
     }
 
-    private val ingressHost: String = System.getenv("INGRESS_HOST") ?: "theia.localtest.me"
     private val log = LoggerFactory.getLogger(SessionReconciler::class.java)
 
-    // Optional limit like Henkan's --sessionsPerUser
-    private val sessionsPerUser: Int? = System.getenv("SESSIONS_PER_USER")?.toIntOrNull()
+    private val ingressHost: String = config.instancesHost ?: "theia.localtest.me"
+    private val sessionsPerUser: Int? = config.sessionsPerUser
 
-    private val keycloakUrl: String? = System.getenv("THEIACLOUD_KEYCLOAK_URL")
-    private val keycloakRealm: String? = System.getenv("THEIACLOUD_KEYCLOAK_REALM")
-    private val keycloakClientId: String? = System.getenv("THEIACLOUD_KEYCLOAK_CLIENT_ID")
+    private val keycloakUrl: String? = config.keycloakUrl
+    private val keycloakRealm: String? = config.keycloakRealm
+    private val keycloakClientId: String? = config.keycloakClientId
+
+    private val ingressScheme: String = config.ingressScheme
+
 
     override fun reconcile(resource: Session, context: Context<Session>): UpdateControl<Session> {
         val ns = resource.metadata?.namespace ?: "default"
@@ -577,7 +580,7 @@ class SessionReconciler(
                 "mountPath" to mountPath,
                 "fsGroupUid" to fsGroupUid,
                 "runAsUid" to runAsUid,
-                "oauth2ProxyImage" to "quay.io/oauth2-proxy/oauth2-proxy:v7.6.0",
+                "oauth2ProxyImage" to config.oAuth2ProxyImage,
                 "oauth2ProxyConfigMapName" to "theia-oauth2-proxy-config",
                 "oauth2TemplatesConfigMapName" to "oauth2-templates",
                 "oauth2EmailsConfigMapName" to "theia-oauth2-emails",
