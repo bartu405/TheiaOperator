@@ -1,4 +1,4 @@
-## FILE: templates/theia-deployment.yaml.vm
+# FILE: templates/theia-deployment.yaml.vm
 apiVersion: apps/v1
 kind: Deployment
 metadata:

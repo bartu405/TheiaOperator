@@ -1,8 +1,7 @@
 // File: WorkspaceReconciler.kt
 package com.example.hello
 
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder
-import io.fabric8.kubernetes.api.model.Quantity
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
@@ -360,29 +359,26 @@ class WorkspaceReconciler(
 
         log.info("PVC {} not found in namespace {}, creating it", pvcName, ns)
 
-        var pvcBuilder = PersistentVolumeClaimBuilder()
-            .withNewMetadata()
-            .withName(pvcName)
-            .addToLabels(labels)
-            .endMetadata()
-            .withNewSpec()
-            .withAccessModes("ReadWriteOnce")
-            .withNewResources()
-            .addToRequests("storage", Quantity(size))
-            .endResources()
+        val rendered = renderPvcYaml(
+            ns = ns,
+            pvcName = pvcName,
+            size = size,
+            storageClassName = storageClassName,
+            labels = labels
+        )
 
-        if (!storageClassName.isNullOrBlank()) {
-            pvcBuilder = pvcBuilder.withStorageClassName(storageClassName)
-        }
+        log.debug("Rendered PVC YAML for {}/{}:\n{}", ns, pvcName, rendered)
 
-        val pvc = pvcBuilder
-            .endSpec()
-            .build()
+        val pvc = loadPvcFromYaml(rendered)
 
+        // enforce owner ref in code (recommended)
         pvc.metadata.ownerReferences = listOf(controllerOwnerRef(ws))
 
+        // namespace safety (in case template changes later)
+        pvc.metadata.namespace = ns
+
         pvcClient.resource(pvc).create()
-        log.info("Created PVC {}/{} with Henkan labels", ns, pvcName)
+        log.info("Created PVC {}/{} from Velocity template", ns, pvcName)
 
         return EnsurePvcResult(
             volumeStatus = VolumeStatus(
@@ -392,6 +388,34 @@ class WorkspaceReconciler(
             storageUpdated = storageUpdated
         )
 
+    }
+
+    private fun renderPvcYaml(
+        ns: String,
+        pvcName: String,
+        size: String,
+        storageClassName: String?,
+        labels: Map<String, String>
+    ): String {
+        val model = mapOf(
+            "namespace" to ns,
+            "pvcName" to pvcName,
+            "size" to size,
+            "storageClassName" to (storageClassName ?: ""),
+            "labels" to labels
+        )
+
+        return TemplateRenderer.render(
+            templatePath = "templates/theia-pvc.yaml.vm",
+            model = model
+        )
+    }
+
+    private fun loadPvcFromYaml(yaml: String): PersistentVolumeClaim {
+        return client.persistentVolumeClaims()
+            .load(yaml.byteInputStream())
+            .item()
+            ?: error("Velocity rendered PVC YAML but Fabric8 returned null item")
     }
 
 

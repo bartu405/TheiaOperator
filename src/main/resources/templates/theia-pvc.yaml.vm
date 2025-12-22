@@ -1,0 +1,19 @@
+# File: templates/theia-pvc.yaml.vm
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $pvcName
+  namespace: $namespace
+  labels:
+#foreach($e in $labels.entrySet())
+    $e.key: "$e.value"
+#end
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: $size
+#if($storageClassName && $storageClassName != "")
+  storageClassName: $storageClassName
+#end
