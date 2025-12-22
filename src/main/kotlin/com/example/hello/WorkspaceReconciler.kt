@@ -45,12 +45,27 @@ class WorkspaceReconciler(
         val ns = resource.metadata?.namespace ?: "<no-namespace>"
         log.info("Reconciling Workspace {}/{}", ns, name)
 
+
+
         // Ensure status exists so we can update it safely
         val status = ensureStatus(resource)
 
+        val opStatus = (status.operatorStatus ?: "NEW").uppercase()
+        when (opStatus) {
+            "HANDLED" -> return UpdateControl.noUpdate()
+            "HANDLING" -> {
+                status.operatorStatus = "ERROR"
+                status.operatorMessage = "Handling was unexpectedly interrupted before."
+                status.error = "Handling interrupted"
+                return UpdateControl.patchStatus(resource)
+            }
+            "ERROR" -> return UpdateControl.noUpdate()
+        }
+
+
         val spec = resource.spec
         if (spec == null) {
-            status.operatorStatus = "Error"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "spec is null"
             status.error = "Workspace spec is missing"
             return UpdateControl.patchStatus(resource)
@@ -58,25 +73,27 @@ class WorkspaceReconciler(
 
         // Validate required CRD fields: spec.name, spec.user, spec.appDefinition
         if (spec.name.isNullOrBlank()) {
-            status.operatorStatus = "Error"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "spec.name is required"
             status.error = "spec.name must be set"
             return UpdateControl.patchStatus(resource)
         }
 
         if (spec.user.isNullOrBlank()) {
-            status.operatorStatus = "Error"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "spec.user is required"
             status.error = "spec.user must be set"
             return UpdateControl.patchStatus(resource)
         }
 
         if (spec.appDefinition.isNullOrBlank()) {
-            status.operatorStatus = "Error"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "spec.appDefinition is required"
             status.error = "spec.appDefinition must be set"
             return UpdateControl.patchStatus(resource)
         }
+
+
 
         var metadataChanged = false
         var specChanged = false
@@ -136,8 +153,10 @@ class WorkspaceReconciler(
             }
         } else {
             log.warn("AppDefinition {}/{} not found for Workspace {}/{}", ns, appDefName, ns, name)
-            status.operatorStatus = "Warning"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "AppDefinition '$appDefName' not found in namespace '$ns'"
+            status.error = status.operatorMessage
+            return UpdateControl.patchStatus(resource)
         }
 
         // Set workspace status to being handled (like Theia Cloud)
@@ -152,9 +171,14 @@ class WorkspaceReconciler(
 
         // Map internal PVC result to Henkan-style status fields
         val volumeStatus = pvcResult.volumeStatus
-        if (volumeStatus.status == "Deleting") {
+        if (volumeStatus.status == "Deleting" || volumeStatus.status == "Pending") {
             status.volumeClaim = VolumeStatus(status = "started", message = volumeStatus.message)
-            status.volumeAttach = VolumeStatus(status = "started", message = "waiting for PVC deletion")
+
+            status.volumeAttach = when (volumeStatus.status) {
+                "Deleting" -> VolumeStatus(status = "started", message = "waiting for PVC deletion")
+                else       -> VolumeStatus(status = "started", message = "waiting for PVC to be Bound")
+            }
+
             status.operatorStatus = "HANDLING"
             status.operatorMessage = volumeStatus.message
             status.error = null
@@ -162,19 +186,21 @@ class WorkspaceReconciler(
             return UpdateControl.patchStatus(resource)
                 .rescheduleAfter(Duration.ofSeconds(2))
         }
-        if (volumeStatus.status == "Created" || volumeStatus.status == "Exists") {
+
+        if (volumeStatus.status == "Exists") {
             status.volumeClaim = VolumeStatus(status = "finished", message = "")
-            status.volumeAttach = VolumeStatus(status = "finished", message = "")
+            status.volumeAttach = VolumeStatus(status = "finished", message = "") // Theia-ish
             status.error = null
             status.operatorStatus = "HANDLED"
             status.operatorMessage = "Workspace reconciled successfully"
-        } else {
+        }
+        else {
             status.volumeClaim = volumeStatus
             status.volumeAttach = VolumeStatus(
-                status = "Error",
+                status = "ERROR",
                 message = "PVC not ready: ${volumeStatus.message}"
             )
-            status.operatorStatus = "Error"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "Failed to reconcile workspace PVC: ${volumeStatus.message}"
             status.error = volumeStatus.message
         }
@@ -202,12 +228,12 @@ class WorkspaceReconciler(
      */
     private fun ensurePvc(ws: Workspace): EnsurePvcResult {
         val wsMeta = ws.metadata ?: return EnsurePvcResult(
-            volumeStatus = VolumeStatus(status = "Error", message = "Workspace metadata is missing"),
+            volumeStatus = VolumeStatus(status = "ERROR", message = "Workspace metadata is missing"),
             storageUpdated = false
         )
 
         val wsName = wsMeta.name ?: return EnsurePvcResult(
-            volumeStatus = VolumeStatus(status = "Error", message = "Workspace metadata.name is missing"),
+            volumeStatus = VolumeStatus(status = "ERROR", message = "Workspace metadata.name is missing"),
             storageUpdated = false
         )
 
@@ -217,7 +243,7 @@ class WorkspaceReconciler(
             TheiaNaming.workspaceStorageName(ws)
         } catch (e: Exception) {
             return EnsurePvcResult(
-                volumeStatus = VolumeStatus(status = "Error", message = "Failed to compute storage name: ${e.message}"),
+                volumeStatus = VolumeStatus(status = "ERROR", message = "Failed to compute storage name: ${e.message}"),
                 storageUpdated = false
             )
         }
@@ -242,6 +268,22 @@ class WorkspaceReconciler(
                 storageUpdated = storageUpdated
             )
         }
+
+        // If PVC exists but is not Bound yet, keep reconciling (don’t mark HANDLED)
+        if (existing != null) {
+            val phase = existing.status?.phase // "Pending", "Bound", "Lost", etc.
+            if (!phase.equals("Bound", ignoreCase = true)) {
+                log.info("PVC {}/{} exists but not Bound yet (phase={}); waiting", ns, pvcName, phase)
+                return EnsurePvcResult(
+                    volumeStatus = VolumeStatus(
+                        status = "Pending",
+                        message = "PVC '$pvcName' exists but is not Bound (phase=${phase ?: "unknown"})"
+                    ),
+                    storageUpdated = storageUpdated
+                )
+            }
+        }
+
 
         // For now, fixed default size.
         val size = "5Gi"
@@ -288,9 +330,6 @@ class WorkspaceReconciler(
 
             existing.metadata.labels = pvcLabels
 
-            // (Optional safety) Don’t patch status back accidentally
-            existing.status = null
-
             pvcClient.resource(existing).patch()
 
             log.info(
@@ -301,10 +340,11 @@ class WorkspaceReconciler(
             return EnsurePvcResult(
                 volumeStatus = VolumeStatus(
                     status = "Exists",
-                    message = "PVC '$pvcName' already exists in namespace '$ns'"
+                    message = "PVC '$pvcName' exists and is Bound in namespace '$ns'"
                 ),
                 storageUpdated = storageUpdated
             )
+
         }
 
         // --- Build label map for a *new* PVC ---
@@ -346,11 +386,12 @@ class WorkspaceReconciler(
 
         return EnsurePvcResult(
             volumeStatus = VolumeStatus(
-                status = "Created",
-                message = "PVC '$pvcName' created in namespace '$ns' with size '$size'"
+                status = "Pending",
+                message = "PVC '$pvcName' created; waiting for it to be Bound"
             ),
             storageUpdated = storageUpdated
         )
+
     }
 
 
