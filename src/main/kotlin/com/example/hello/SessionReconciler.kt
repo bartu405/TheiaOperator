@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPathBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder
 import io.fabric8.kubernetes.client.KubernetesClient
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
@@ -151,6 +152,10 @@ class SessionReconciler(
             ?: return failStatus(resource, "AppDefinition '$nonNullAppDefName' missing image")
         val port = appSpec.port
             ?: return failStatus(resource, "AppDefinition '$nonNullAppDefName' missing port")
+
+        val appPort = port          // from AppDefinition, usually 3000
+        val proxyPort = 5000        // constant
+
 
         // NEW: monitor config
         val monitorPort = appSpec.monitor?.port
@@ -322,29 +327,51 @@ class SessionReconciler(
             return failStatus(resource, "Shared Ingress '$ingressName' is missing. Create it first.")
         }
 
+        val sessionProxyCm = ensureSessionProxyConfigMap(
+            namespace = ns,
+            user = user,
+            appDefName = nonNullAppDefName,
+            sessionName = nonNullSessionName,
+            sessionUid = sessionUid,
+            port = appPort,
+            owner = resource
+        )
+
+        val sessionEmailCm = ensureSessionEmailConfigMap(
+            namespace = ns,
+            user = user,
+            appDefName = nonNullAppDefName,
+            sessionName = nonNullSessionName,
+            sessionUid = sessionUid,
+            owner = resource
+        )
+
+
         // --- 5) Ensure Deployment + Service + SHARED Ingress
         ensureTheiaDeployment(
-            ns,
+            namespace = ns,
             deploymentName = sessionBaseName,
-            nonNullSessionName,
-            nonNullWorkspaceName,
-            image,
-            imagePullPolicy,
-            pullSecret,
-            requestsCpu,
-            requestsMemory,
-            limitsCpu,
-            limitsMemory,
-            mergedEnv,
-            envVarsFromConfigMaps,
-            envVarsFromSecrets,
-            port,
-            monitorPort,
-            mountPath,
-            fsGroupUid,
-            runAsUid,
-            downlinkLimit,
-            uplinkLimit,
+            sessionName = nonNullSessionName,
+            workspaceName = nonNullWorkspaceName,
+            image = image,
+            imagePullPolicy = imagePullPolicy,
+            pullSecret = pullSecret,
+            requestsCpu = requestsCpu,
+            requestsMemory = requestsMemory,
+            limitsCpu = limitsCpu,
+            limitsMemory = limitsMemory,
+            env = mergedEnv,
+            envVarsFromConfigMaps = envVarsFromConfigMaps,
+            envVarsFromSecrets = envVarsFromSecrets,
+            oauth2ProxyConfigMapName = sessionProxyCm,
+            oauth2EmailsConfigMapName = sessionEmailCm,
+            port = port,
+            monitorPort = monitorPort,
+            mountPath = mountPath,
+            fsGroupUid = fsGroupUid,
+            runAsUid = runAsUid,
+            downlinkLimit = downlinkLimit,
+            uplinkLimit = uplinkLimit,
             appDefinitionName = nonNullAppDefName,
             user = user,
             sessionUid = sessionUid,
@@ -357,7 +384,7 @@ class SessionReconciler(
             namespace = ns,
             serviceName = serviceName,
             sessionName = nonNullSessionName,
-            port = port,
+            port = proxyPort,
             owner = resource,
             appLabel = appLabel,
             appDefinitionName = nonNullAppDefName,
@@ -369,7 +396,7 @@ class SessionReconciler(
             serviceName = serviceName,
             ingressName = ingressName,
             appDef = appDef,
-            port = port
+            port = proxyPort
         )
 
 
@@ -506,7 +533,7 @@ class SessionReconciler(
 
     private fun failStatus(resource: Session, msg: String): UpdateControl<Session> {
         val status = ensureStatus(resource)
-        status.operatorStatus = "Error"
+        status.operatorStatus = "ERROR"
         status.operatorMessage = msg
         status.error = msg
         status.url = null
@@ -537,6 +564,8 @@ class SessionReconciler(
         env: List<EnvVar>,
         envVarsFromConfigMaps: List<String>,
         envVarsFromSecrets: List<String>,
+        oauth2ProxyConfigMapName: String,
+        oauth2EmailsConfigMapName: String,
         port: Int,
         monitorPort: Int?,
         mountPath: String,
@@ -581,9 +610,9 @@ class SessionReconciler(
                 "fsGroupUid" to fsGroupUid,
                 "runAsUid" to runAsUid,
                 "oauth2ProxyImage" to config.oAuth2ProxyImage,
-                "oauth2ProxyConfigMapName" to "theia-oauth2-proxy-config",
+                "oauth2ProxyConfigMapName" to oauth2ProxyConfigMapName,
                 "oauth2TemplatesConfigMapName" to "oauth2-templates",
-                "oauth2EmailsConfigMapName" to "theia-oauth2-emails",
+                "oauth2EmailsConfigMapName" to oauth2EmailsConfigMapName,
                 "downlinkLimit" to downlinkLimit,
                 "uplinkLimit" to uplinkLimit,
                 "appDefinitionName" to appDefinitionName,
@@ -599,6 +628,104 @@ class SessionReconciler(
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
     }
+
+    private fun ensureSessionProxyConfigMap(
+        namespace: String,
+        user: String,
+        appDefName: String,
+        sessionName: String,
+        sessionUid: String,
+        port: Int,
+        owner: Session
+    ): String {
+        val baseName = "oauth2-proxy-config" // global base CM name (Henkan-like)
+        val base = client.configMaps().inNamespace(namespace).withName(baseName).get()
+            ?: throw IllegalStateException("Missing ConfigMap '$baseName' in namespace '$namespace'")
+
+        val baseCfg = base.data?.get("oauth2-proxy.cfg")
+            ?: throw IllegalStateException("ConfigMap '$baseName' missing key 'oauth2-proxy.cfg'")
+
+        val host = config.instancesHost ?: "theia.localtest.me"
+        val scheme = config.ingressScheme.ifBlank { "https" }
+
+        val redirectUrl = "$scheme://$host/$sessionUid/oauth2/callback"
+        val upstream = "http://127.0.0.1:$port/"
+
+        // Henkan-style placeholder replacement
+        var rendered = baseCfg
+            .replace("https://placeholder/oauth2/callback", redirectUrl)
+            .replace("http://127.0.0.1:placeholder-port/", upstream)
+            .replace("placeholder-port", port.toString())
+            .replace("placeholder-host", host)
+
+        val name = sessionProxyCmName(user, appDefName, sessionUid)
+
+        val cm = ConfigMapBuilder()
+            .withNewMetadata()
+            .withName(name)
+            .withNamespace(namespace)
+            .addToLabels("app.kubernetes.io/component", "session")
+            .addToLabels("app.kubernetes.io/part-of", "theia-cloud")
+            .addToLabels("theia-cloud.io/app-definition", appDefName)
+            .addToLabels("theia-cloud.io/session", sessionName)
+            .addToLabels("theia-cloud.io/user", user)
+            .addToLabels("theia-cloud.io/template-purpose", "proxy")
+            .withOwnerReferences(controllerOwnerRef(owner))
+            .endMetadata()
+            .addToData("oauth2-proxy.cfg", rendered)
+            .build()
+
+        client.configMaps().inNamespace(namespace).resource(cm).createOrReplace()
+        return name
+    }
+
+    private fun ensureSessionEmailConfigMap(
+        namespace: String,
+        user: String,
+        appDefName: String,
+        sessionName: String,
+        sessionUid: String,
+        owner: Session
+    ): String {
+        val name = sessionEmailCmName(user, appDefName, sessionUid)
+
+        // Henkan-like: store username (e.g., "bartu") not email
+        val cm = ConfigMapBuilder()
+            .withNewMetadata()
+            .withName(name)
+            .withNamespace(namespace)
+            .addToLabels("app.kubernetes.io/component", "session")
+            .addToLabels("app.kubernetes.io/part-of", "theia-cloud")
+            .addToLabels("theia-cloud.io/app-definition", appDefName)
+            .addToLabels("theia-cloud.io/session", sessionName)
+            .addToLabels("theia-cloud.io/user", user)
+            .addToLabels("theia-cloud.io/template-purpose", "emails")
+            .withOwnerReferences(controllerOwnerRef(owner))
+            .endMetadata()
+            .addToData("authenticated-emails-list", user)
+            .build()
+
+        client.configMaps().inNamespace(namespace).resource(cm).createOrReplace()
+        return name
+    }
+
+
+    private fun shortUid(sessionUid: String): String =
+        sessionUid.replace("-", "").takeLast(12)
+
+    private fun safeNamePart(s: String, max: Int): String =
+        s.lowercase()
+            .replace(Regex("[^a-z0-9-]"), "-")
+            .replace(Regex("-+"), "-")
+            .trim('-')
+            .take(max)
+
+    private fun sessionProxyCmName(user: String, appDefName: String, sessionUid: String): String =
+        "session-proxy-${safeNamePart(user, 20)}-${safeNamePart(appDefName, 10)}-${shortUid(sessionUid)}"
+
+    private fun sessionEmailCmName(user: String, appDefName: String, sessionUid: String): String =
+        "session-email-${safeNamePart(user, 20)}-${safeNamePart(appDefName, 10)}-${shortUid(sessionUid)}"
+
 
     private fun ensureTheiaService(
         namespace: String,

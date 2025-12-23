@@ -1,0 +1,8 @@
+# File: oauth2-templates.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oauth2-templates
+data:
+  sign_in.html: "<html><body>Sign in</body></html>"
+  error.html: "<html><body>Error</body></html>"

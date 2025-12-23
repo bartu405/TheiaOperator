@@ -1,0 +1,31 @@
+# File: oauth2-proxy-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oauth2-proxy-config
+data:
+  oauth2-proxy.cfg: |
+    # Provider config
+    provider="keycloak-oidc"
+    redirect_url="https://placeholder/oauth2/callback"
+    oidc_issuer_url="https://keycloak.172.12.2.32.sslip.io/auth/realms/henkan"
+    ssl_insecure_skip_verify=true
+    
+    # Client config
+    client_id="henkan-designer"
+    client_secret="<<<from keycloak client>>>"
+    cookie_secret="tOvujkSVXoaHFoj4tMcO7xTeRtmCP6kG"
+    cookie_secure="false"
+    
+    # Upstream config
+    http_address="0.0.0.0:5000"
+    upstreams="http://127.0.0.1:placeholder-port/"
+    
+    # Proxy Config
+    user_id_claim="preferred_username"
+    skip_auth_routes=["/health.*"]
+    skip_provider_button="true"
+    reverse_proxy="true"
+    cookie_domains=["placeholder-host"]
+    whitelist_domains=["placeholder-host:*",".google.com:*"]
+    custom_templates_dir="/templates"

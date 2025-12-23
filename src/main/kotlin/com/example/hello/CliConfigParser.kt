@@ -18,7 +18,9 @@ object CliConfigParser {
 
             appId = get("--appId"),
             instancesHost = get("--instancesHost") ?: System.getenv("INGRESS_HOST"),
-            ingressScheme = System.getenv("INGRESS_SCHEME") ?: "https",
+            ingressScheme = get("--ingressScheme")
+                ?: System.getenv("INGRESS_SCHEME")
+                ?: "https",
 
             oAuth2ProxyImage = get("--oAuth2ProxyVersion")
                 ?: System.getenv("OAUTH2_PROXY_IMAGE")
