@@ -17,10 +17,12 @@ object CliConfigParser {
             keycloakClientId = get("--keycloakClientId") ?: System.getenv("THEIACLOUD_KEYCLOAK_CLIENT_ID"),
 
             appId = get("--appId"),
-            instancesHost = get("--instancesHost") ?: System.getenv("INGRESS_HOST"),
-            ingressScheme = get("--ingressScheme")
-                ?: System.getenv("INGRESS_SCHEME")
-                ?: "https",
+            ingressScheme =
+            (get("--ingressScheme") ?: System.getenv("INGRESS_SCHEME") ?: "https").trim(),
+
+            instancesHost =
+                (get("--instancesHost") ?: System.getenv("INSTANCES_HOST") ?: "theia.localtest.me").trim(),
+
 
             oAuth2ProxyImage = get("--oAuth2ProxyVersion")
                 ?: System.getenv("OAUTH2_PROXY_IMAGE")

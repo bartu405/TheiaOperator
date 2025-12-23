@@ -40,14 +40,15 @@ class SessionReconciler(
 
     private val log = LoggerFactory.getLogger(SessionReconciler::class.java)
 
-    private val ingressHost: String = config.instancesHost ?: "theia.localtest.me"
+
     private val sessionsPerUser: Int? = config.sessionsPerUser
 
     private val keycloakUrl: String? = config.keycloakUrl
     private val keycloakRealm: String? = config.keycloakRealm
     private val keycloakClientId: String? = config.keycloakClientId
 
-    private val ingressScheme: String = config.ingressScheme
+    private val ingressHost: String = (config.instancesHost ?: "theia.localtest.me").trim()
+    private val ingressScheme: String = config.ingressScheme.trim()
 
 
     override fun reconcile(resource: Session, context: Context<Session>): UpdateControl<Session> {
