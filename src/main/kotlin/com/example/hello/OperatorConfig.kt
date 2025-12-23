@@ -1,3 +1,4 @@
+// File: OperatorConfig.kt
 package com.example.hello
 
 data class OperatorConfig(

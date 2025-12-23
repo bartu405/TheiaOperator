@@ -234,7 +234,7 @@ class SessionReconciler(
         // --- 3) Env: system THEIACLOUD_* + user envVars
         val sessionEnvMap = spec.envVars ?: emptyMap()
 
-        val appId = appSpec.name ?: appDef.metadata?.name ?: nonNullAppDefName
+        val appId = config.appId ?: appSpec.name ?: appDef.metadata?.name ?: nonNullAppDefName
 
         val sessionUid = resource.metadata?.uid
             ?: return failStatus(resource, "Session UID is missing")
@@ -247,7 +247,7 @@ class SessionReconciler(
 
 
         // Henkan-like URLs:
-        val sessionUrlForEnv = "http://$ingressHost/$sessionUid/"
+        val sessionUrlForEnv = "${ingressScheme}://$ingressHost/$sessionUid/"
         val sessionUrlForStatus = "$ingressHost/$sessionUid/"
 
         val mergedEnv = mutableListOf<EnvVar>()
