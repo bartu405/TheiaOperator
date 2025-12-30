@@ -639,7 +639,7 @@ class SessionReconciler(
         port: Int,
         owner: Session
     ): String {
-        val baseName = "oauth2-proxy-config" // global base CM name (Henkan-like)
+        val baseName = "oauth2-proxy-config"
         val base = client.configMaps().inNamespace(namespace).withName(baseName).get()
             ?: throw IllegalStateException("Missing ConfigMap '$baseName' in namespace '$namespace'")
 
@@ -647,17 +647,22 @@ class SessionReconciler(
             ?: throw IllegalStateException("ConfigMap '$baseName' missing key 'oauth2-proxy.cfg'")
 
         val host = config.instancesHost ?: "theia.localtest.me"
-        val scheme = config.ingressScheme.ifBlank { "https" }
+        val scheme = config.ingressScheme.ifBlank { "http" }
 
-        val redirectUrl = "$scheme://$host/$sessionUid/oauth2/callback"
+        // For local dev with port-forward, default to 8080
+        val ingressPort = System.getenv("INGRESS_PORT") ?: "8080"
+
         val upstream = "http://127.0.0.1:$port/"
 
-        // Henkan-style placeholder replacement
-        var rendered = baseCfg
-            .replace("https://placeholder/oauth2/callback", redirectUrl)
+        // Replace ALL placeholders
+        val rendered = baseCfg
+            .replace("SESSION_UID_PLACEHOLDER", sessionUid)
+            .replace("PORT_PLACEHOLDER", ingressPort)
             .replace("http://127.0.0.1:placeholder-port/", upstream)
             .replace("placeholder-port", port.toString())
             .replace("placeholder-host", host)
+
+        log.info("Rendered oauth2-proxy.cfg for session {}:\n{}", sessionUid, rendered)
 
         val name = sessionProxyCmName(user, appDefName, sessionUid)
 
@@ -666,10 +671,7 @@ class SessionReconciler(
             .withName(name)
             .withNamespace(namespace)
             .addToLabels("app.kubernetes.io/component", "session")
-            .addToLabels("app.kubernetes.io/part-of", "theia-cloud")
-            .addToLabels("theia-cloud.io/app-definition", appDefName)
-            .addToLabels("theia-cloud.io/session", sessionName)
-            .addToLabels("theia-cloud.io/user", user)
+            .addToLabels("theia-cloud.io/session-uid", sessionUid)
             .addToLabels("theia-cloud.io/template-purpose", "proxy")
             .withOwnerReferences(controllerOwnerRef(owner))
             .endMetadata()

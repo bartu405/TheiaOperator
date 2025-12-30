@@ -1,3 +1,4 @@
+# (From henkan lab)
 apiVersion: v1
 data:
   oauth2-proxy.cfg: |
