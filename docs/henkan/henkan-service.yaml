@@ -1,0 +1,44 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: "2026-01-02T09:08:38Z"
+    labels:
+      app: bartu-bartu-test-425f4989-2f8d-4cb5-ab09-52a6358b623c
+      app.kubernetes.io/component: session
+      app.kubernetes.io/part-of: theia-cloud
+      theia-cloud.io/app-definition: henkan-designer
+      theia-cloud.io/session: bartu-bartu-test
+      theia-cloud.io/user: bartu
+    name: session-bartu-henkan-designer-52a6358b623c
+    namespace: henkan-designer
+    ownerReferences:
+    - apiVersion: theia.cloud/v1beta8
+      kind: Session
+      name: bartu-bartu-test
+      uid: 425f4989-2f8d-4cb5-ab09-52a6358b623c
+    resourceVersion: "88801627"
+    uid: 76bc9fca-3bd0-40be-a5ca-66d636b801b6
+  spec:
+    clusterIP: 10.43.10.206
+    clusterIPs:
+    - 10.43.10.206
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+      targetPort: web
+    selector:
+      app: bartu-bartu-test-425f4989-2f8d-4cb5-ab09-52a6358b623c
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""

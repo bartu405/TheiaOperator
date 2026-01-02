@@ -1,0 +1,72 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    authenticated-emails-list: bartu
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: "2026-01-02T09:08:38Z"
+    labels:
+      app.kubernetes.io/component: session
+      app.kubernetes.io/part-of: theia-cloud
+      theia-cloud.io/app-definition: henkan-designer
+      theia-cloud.io/session: bartu-bartu-test
+      theia-cloud.io/template-purpose: emails
+      theia-cloud.io/user: bartu
+    name: session-email-bartu-henkan-desi-52a6358b623c
+    namespace: henkan-designer
+    ownerReferences:
+    - apiVersion: theia.cloud/v1beta8
+      kind: Session
+      name: bartu-bartu-test
+      uid: 425f4989-2f8d-4cb5-ab09-52a6358b623c
+    resourceVersion: "88801632"
+    uid: 68e32534-c549-47dd-870e-3c7bb0411da1
+- apiVersion: v1
+  data:
+    oauth2-proxy.cfg: |
+      # Provider config
+      provider="keycloak-oidc"
+      redirect_url="https://designer.172.12.2.32.sslip.io/425f4989-2f8d-4cb5-ab09-52a6358b623c/oauth2/callback"
+      oidc_issuer_url="https://keycloak.172.12.2.32.sslip.io/auth/realms/henkan"
+      ssl_insecure_skip_verify=true
+      # Client config
+      client_id="henkan-designer"
+      client_secret="tVMDb95D66ZQh2HtbzUHztwJ5VSycIU1"
+      cookie_secret="OQINaROshtE9TcZkNAm5Zs2Pv3xaWytBmc5W7sPX7ws="
+      cookie_secure="false"
+      #proxy_prefix=""
+      # Upstream config
+      http_address="0.0.0.0:5000"
+      upstreams="http://127.0.0.1:3000/"
+      # Proxy Config
+      user_id_claim="preferred_username"
+      skip_auth_routes=["/health.*"]
+      skip_provider_button="true"
+      reverse_proxy="true"
+      # email_domains=["*"]
+      cookie_domains=["designer.172.12.2.32.sslip.io"]
+      whitelist_domains=["designer.172.12.2.32.sslip.io:*",".google.com:*"]
+      custom_templates_dir="/templates"
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: "2026-01-02T09:08:38Z"
+    labels:
+      app.kubernetes.io/component: session
+      app.kubernetes.io/part-of: theia-cloud
+      theia-cloud.io/app-definition: henkan-designer
+      theia-cloud.io/session: bartu-bartu-test
+      theia-cloud.io/template-purpose: proxy
+      theia-cloud.io/user: bartu
+    name: session-proxy-bartu-henkan-desi-52a6358b623c
+    namespace: henkan-designer
+    ownerReferences:
+    - apiVersion: theia.cloud/v1beta8
+      kind: Session
+      name: bartu-bartu-test
+      uid: 425f4989-2f8d-4cb5-ab09-52a6358b623c
+    resourceVersion: "88801633"
+    uid: 36992828-748f-42f8-a073-44321283ffc3
+kind: List
+metadata:
+  resourceVersion: ""

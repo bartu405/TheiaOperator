@@ -1,0 +1,66 @@
+apiVersion: v1
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      acme.cert-manager.io/http01-ingress-class: nginx
+      cert-manager.io/cluster-issuer: ca-issuer
+      field.cattle.io/publicEndpoints: '[{"addresses":["172.12.2.149","172.12.2.31","172.12.2.32","172.12.2.35","172.12.2.39"],"port":443,"protocol":"HTTPS","serviceName":"henkan-designer:session-sarp-henkan-designer-ea364074fa22","ingressName":"henkan-designer:theia-cloud-demo-ws-ingress","hostname":"designer.172.12.2.32.sslip.io","path":"/7a9f3211-85cc-49e8-b7c5-ea364074fa22(/|$)(.*)","allNodes":false},{"addresses":["172.12.2.149","172.12.2.31","172.12.2.32","172.12.2.35","172.12.2.39"],"port":443,"protocol":"HTTPS","serviceName":"henkan-designer:session-bartu-henkan-designer-52a6358b623c","ingressName":"henkan-designer:theia-cloud-demo-ws-ingress","hostname":"designer.172.12.2.32.sslip.io","path":"/425f4989-2f8d-4cb5-ab09-52a6358b623c(/|$)(.*)","allNodes":false}]'
+      meta.helm.sh/release-name: henkan-designer
+      meta.helm.sh/release-namespace: henkan-designer
+      nginx.ingress.kubernetes.io/proxy-body-size: 1m
+      nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+    creationTimestamp: "2025-12-04T12:26:38Z"
+    generation: 101
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: theia-cloud-demo-ws-ingress
+    namespace: henkan-designer
+    ownerReferences:
+    - apiVersion: theia.cloud/v1beta10
+      kind: AppDefinition
+      name: henkan-designer
+      uid: 809b363f-067f-4d38-a79f-52b699f5080e
+    resourceVersion: "88801659"
+    uid: daa66029-7649-44e1-b5bb-4dc9b75f7026
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: designer.172.12.2.32.sslip.io
+    - host: designer.172.12.2.32.sslip.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: session-sarp-henkan-designer-ea364074fa22
+              port:
+                number: 3000
+          path: /7a9f3211-85cc-49e8-b7c5-ea364074fa22(/|$)(.*)
+          pathType: ImplementationSpecific
+    - host: designer.172.12.2.32.sslip.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: session-bartu-henkan-designer-52a6358b623c
+              port:
+                number: 3000
+          path: /425f4989-2f8d-4cb5-ab09-52a6358b623c(/|$)(.*)
+          pathType: ImplementationSpecific
+    tls:
+    - hosts:
+      - designer.172.12.2.32.sslip.io
+      secretName: ws-cert-secret
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 172.12.2.149
+      - ip: 172.12.2.31
+      - ip: 172.12.2.32
+      - ip: 172.12.2.35
+      - ip: 172.12.2.39
+kind: List
+metadata:
+  resourceVersion: ""

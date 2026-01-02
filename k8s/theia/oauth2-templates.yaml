@@ -3,6 +3,28 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: oauth2-templates
+  namespace: default
 data:
-  sign_in.html: "<html><body>Sign in</body></html>"
-  error.html: "<html><body>Error</body></html>"
+  error.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>Access Forbidden</title></head>
+    <body>
+    <h1>403 - Access Forbidden</h1>
+    <p>You don't have permission to access this resource.</p>
+    <a href="{{.ProxyPrefix}}/sign_out">Logout</a>
+    </body>
+    </html>
+
+  sign_in.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>Sign In</title></head>
+    <body>
+    <h1>Sign In</h1>
+    <form method="GET" action="{{.ProxyPrefix}}/start">
+        <input type="hidden" name="rd" value="{{.Redirect}}">
+        <button type="submit">Sign in with {{.ProviderName}}</button>
+    </form>
+    </body>
+    </html>

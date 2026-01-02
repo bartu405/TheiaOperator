@@ -12,7 +12,7 @@ data:
     ssl_insecure_skip_verify=true
     
     # Placeholder for redirect URL (replaced by operator)
-    redirect_url="http://theia.localtest.me:PORT_PLACEHOLDER/SESSION_UID_PLACEHOLDER/oauth2/callback"
+    redirect_url="http://placeholder-host/SESSION_UID_PLACEHOLDER/oauth2/callback"
     
     # Client config
     client_id="henkan-designer"
@@ -30,8 +30,9 @@ data:
     skip_provider_button=true
     reverse_proxy=true
     
-    cookie_domains=[]
-    whitelist_domains=[".theia.localtest.me:*", "theia.localtest.me:*", "192.168.19.251:*"]
+    cookie_domains=["placeholder-host"]
+    whitelist_domains=["placeholder-host:*", ".placeholder-host:*"]
     
     email_domains=["*"]
     insecure_oidc_allow_unverified_email=true
+    custom_templates_dir="/templates"

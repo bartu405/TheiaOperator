@@ -384,7 +384,7 @@ class SessionReconciler(
             namespace = ns,
             serviceName = serviceName,
             sessionName = nonNullSessionName,
-            port = proxyPort,
+            port = appPort,
             owner = resource,
             appLabel = appLabel,
             appDefinitionName = nonNullAppDefName,
@@ -396,7 +396,7 @@ class SessionReconciler(
             serviceName = serviceName,
             ingressName = ingressName,
             appDef = appDef,
-            port = proxyPort
+            port = appPort
         )
 
 
@@ -427,7 +427,6 @@ class SessionReconciler(
             return DeleteControl.defaultDelete()
         }
 
-        // Load AppDefinition so we can determine the ingress name
         val appDef = client.resources(AppDefinition::class.java)
             .inNamespace(ns)
             .withName(appDefName)
@@ -464,7 +463,6 @@ class SessionReconciler(
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
         var changed = false
 
-        // Build a new rules list, but never delete the Ingress itself
         val newRules = rules.map { rule ->
             if (rule.host != host) {
                 rule
@@ -475,17 +473,16 @@ class SessionReconciler(
                 val filteredPaths = paths.filter { it.path != path }
 
                 if (filteredPaths.size == paths.size) {
-                    // nothing removed
                     rule
                 } else {
                     changed = true
                     if (filteredPaths.isEmpty()) {
-                        // keep host, drop http -> host-only rule, no active sessions
+                        // ✅ FIX: Keep host-only rule (no http section)
                         IngressRuleBuilder(rule)
-                            .withHttp(null)
+                            .withHost(host)
+                            .withHttp(null)  // ← This creates a placeholder rule
                             .build()
                     } else {
-                        // still some paths left for this host
                         IngressRuleBuilder(rule)
                             .editOrNewHttp()
                             .withPaths(filteredPaths)
@@ -496,8 +493,6 @@ class SessionReconciler(
             }
         }.toMutableList()
 
-
-
         if (!changed) {
             log.info(
                 "No matching path {} on host {} in Ingress '{}', nothing to change",
@@ -506,15 +501,19 @@ class SessionReconciler(
             return DeleteControl.defaultDelete()
         }
 
-        val normalized = normalizeIngressRules(newRules)
+        // ✅ FIX: Don't normalize - keep host-only rules
         val updatedIngress = IngressBuilder(ingress)
             .editOrNewSpec()
-            .withRules(normalized)
+            .withRules(newRules)  // ← Use newRules directly, don't normalize
             .endSpec()
             .build()
 
-
         ingressClient.resource(updatedIngress).createOrReplace()
+
+        log.info(
+            "Successfully removed path from Ingress '{}'. Remaining rules: {}",
+            ingressName, newRules.size
+        )
 
         return DeleteControl.defaultDelete()
     }
@@ -645,26 +644,32 @@ class SessionReconciler(
         val baseCfg = base.data?.get("oauth2-proxy.cfg")
             ?: throw IllegalStateException("ConfigMap '$baseName' missing key 'oauth2-proxy.cfg'")
 
-        // 1. Calculate the dynamic Issuer URL
-        // e.g. "http://192.168.19.251:8080/auth/" + "realms/" + "henkan"
+        // Calculate dynamic values
         val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
-
         val host = config.instancesHost ?: "theia.localtest.me"
         val scheme = config.ingressScheme.ifBlank { "http" }
 
-        // For local dev with port-forward, default to 8080
-        val ingressPort = System.getenv("INGRESS_PORT") ?: "8080"
-
+        val hostWithPort = "$host:8080"
         val upstream = "http://127.0.0.1:$port/"
 
-        // Replace ALL placeholders
-        val rendered = baseCfg
+        // ✅ STEP 1: Replace placeholders in order
+        var rendered = baseCfg
             .replace("ISSUER_URL_PLACEHOLDER", issuerUrl)
             .replace("SESSION_UID_PLACEHOLDER", sessionUid)
-            .replace("PORT_PLACEHOLDER", ingressPort)
             .replace("http://127.0.0.1:placeholder-port/", upstream)
-            .replace("placeholder-port", port.toString())
-            .replace("placeholder-host", host)
+
+        // ✅ STEP 2: Replace placeholder-host in redirect_url BEFORE replacing in cookie_domains
+        // This replaces: redirect_url="http://placeholder-host/SESSION_UID/..."
+        // With: redirect_url="http://theia.localtest.me:8080/SESSION_UID/..."
+        rendered = rendered.replace(
+            "redirect_url=\"http://placeholder-host/",
+            "redirect_url=\"${scheme}://${hostWithPort}/"
+        )
+
+        // ✅ STEP 3: Now replace remaining placeholder-host (in cookie_domains)
+        // This replaces: cookie_domains=["placeholder-host"]
+        // With: cookie_domains=["theia.localtest.me"]
+        rendered = rendered.replace("placeholder-host", host)
 
         log.info("Rendered oauth2-proxy.cfg for session {}:\n{}", sessionUid, rendered)
 
@@ -728,10 +733,10 @@ class SessionReconciler(
             .take(max)
 
     private fun sessionProxyCmName(user: String, appDefName: String, sessionUid: String): String =
-        "session-proxy-${safeNamePart(user, 20)}-${safeNamePart(appDefName, 10)}-${shortUid(sessionUid)}"
+        "session-proxy-${safeNamePart(user, 20)}-${safeNamePart(appDefName, 15)}-${shortUid(sessionUid)}"
 
     private fun sessionEmailCmName(user: String, appDefName: String, sessionUid: String): String =
-        "session-email-${safeNamePart(user, 20)}-${safeNamePart(appDefName, 10)}-${shortUid(sessionUid)}"
+        "session-email-${safeNamePart(user, 20)}-${safeNamePart(appDefName, 15)}-${shortUid(sessionUid)}"
 
 
     private fun ensureTheiaService(
@@ -752,7 +757,7 @@ class SessionReconciler(
                 "sessionName" to sessionName,
                 "serviceType" to "ClusterIP",
                 "servicePort" to port,
-                "targetPort" to port,
+                "targetPort" to "web",
                 "appLabel" to appLabel,
                 "appDefinitionName" to appDefinitionName,
                 "user" to user,
@@ -867,8 +872,10 @@ class SessionReconciler(
             .take(253)
 
     private fun sessionResourceBaseName(user: String, appDefName: String, sessionUid: String): String {
-        val uidSuffix = sessionUid.substringAfterLast('-')
-        return toK8sName("session-$user-$appDefName-$uidSuffix")
+        val uidSuffix = sessionUid.replace("-", "").takeLast(12)  // ✅ Always 12 chars
+        val safeUser = safeNamePart(user, 20)
+        val safeAppDef = safeNamePart(appDefName, 20)
+        return "session-${safeUser}-${safeAppDef}-${uidSuffix}"
     }
 
 }

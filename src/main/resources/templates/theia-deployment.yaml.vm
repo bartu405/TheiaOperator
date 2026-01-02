@@ -34,6 +34,8 @@ spec:
 #end
     spec:
       automountServiceAccountToken: false
+      serviceAccount: designer
+      serviceAccountName: designer
       securityContext:
         fsGroup: ${fsGroupUid}
 #if( $pullSecret )
@@ -72,6 +74,7 @@ spec:
           ports:
             - containerPort: 5000
               name: web
+              protocol: TCP
           volumeMounts:
             - name: oauth2-proxy-config
               mountPath: /etc/oauth2-proxy.cfg
@@ -88,6 +91,7 @@ spec:
           ports:
           - containerPort: ${port}
             name: application
+            protocol: TCP
 #if( $monitorPort )
           - containerPort: ${monitorPort}
             name: monitor

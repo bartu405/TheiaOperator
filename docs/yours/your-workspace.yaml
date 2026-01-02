@@ -1,0 +1,38 @@
+apiVersion: example.suleyman.io/v1
+kind: Workspace
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"example.suleyman.io/v1","kind":"Workspace","metadata":{"annotations":{},"labels":{"app.henkan.io/henkanProjectName":"bartu-demo-workspace","app.henkan.io/workspaceName":"demo-ws","app.henkan.io/workspaceUser":"bartu"},"name":"bartu-demo-ws","namespace":"default"},"spec":{"appDefinition":"sample-app","label":"bartu-demo-workspace","name":"bartu-demo-ws","user":"bartu"}}
+  creationTimestamp: "2026-01-02T11:18:36Z"
+  generation: 2
+  labels:
+    app.henkan.io/henkanProjectName: bartu-demo-workspace
+    app.henkan.io/workspaceName: demo-ws
+    app.henkan.io/workspaceUser: bartu
+  name: bartu-demo-ws
+  namespace: default
+  ownerReferences:
+  - apiVersion: example.suleyman.io/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: AppDefinition
+    name: sample-app
+    uid: 37c85fd8-8215-46ad-bc44-011756fde05f
+  resourceVersion: "105486"
+  uid: d3ccdcce-2874-4e42-9e49-b4bc934aa992
+spec:
+  appDefinition: sample-app
+  label: bartu-demo-workspace
+  name: bartu-demo-ws
+  storage: ws-bartu-sample-app-b4bc934aa992
+  user: bartu
+status:
+  operatorMessage: Workspace reconciled successfully
+  operatorStatus: HANDLED
+  volumeAttach:
+    message: ""
+    status: finished
+  volumeClaim:
+    message: ""
+    status: finished

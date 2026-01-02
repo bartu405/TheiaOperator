@@ -20,5 +20,4 @@ spec:
   - name: http
     port: ${servicePort}
     protocol: TCP
-    # Theia sends traffic to the oauth2-proxy "web" port
     targetPort: web
