@@ -15,7 +15,6 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
-import ownerRef
 import java.io.ByteArrayInputStream
 import java.time.Duration
 
@@ -409,9 +408,9 @@ class SessionReconciler(
         status.lastActivity = System.currentTimeMillis()
 
         return if (metadataChanged) {
-            UpdateControl.patchResourceAndStatus(resource)   // ✅ single write for CR + status
+            UpdateControl.patchResourceAndStatus(resource)
         } else {
-            UpdateControl.patchStatus(resource)              // ✅ only status
+            UpdateControl.patchStatus(resource)
         }
     }
 
