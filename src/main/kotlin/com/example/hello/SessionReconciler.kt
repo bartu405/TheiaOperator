@@ -646,6 +646,10 @@ class SessionReconciler(
         val baseCfg = base.data?.get("oauth2-proxy.cfg")
             ?: throw IllegalStateException("ConfigMap '$baseName' missing key 'oauth2-proxy.cfg'")
 
+        // 1. Calculate the dynamic Issuer URL
+        // e.g. "http://192.168.19.251:8080/auth/" + "realms/" + "henkan"
+        val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
+
         val host = config.instancesHost ?: "theia.localtest.me"
         val scheme = config.ingressScheme.ifBlank { "http" }
 
@@ -656,6 +660,7 @@ class SessionReconciler(
 
         // Replace ALL placeholders
         val rendered = baseCfg
+            .replace("ISSUER_URL_PLACEHOLDER", issuerUrl)
             .replace("SESSION_UID_PLACEHOLDER", sessionUid)
             .replace("PORT_PLACEHOLDER", ingressPort)
             .replace("http://127.0.0.1:placeholder-port/", upstream)
