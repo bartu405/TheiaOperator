@@ -845,15 +845,10 @@ class SessionReconciler(
             MutableList<io.fabric8.kubernetes.api.model.networking.v1.IngressRule> {
 
         val out = mutableListOf<io.fabric8.kubernetes.api.model.networking.v1.IngressRule>()
-        val seenHostOnly = mutableSetOf<String>()
 
         for (r in rules) {
-            val host = r.host ?: ""
-            if (r.http == null) {
-                if (seenHostOnly.add(host)) {
-                    out.add(r)
-                }
-            } else {
+            // Only keep rules that have actual paths
+            if (r.http != null) {
                 out.add(r)
             }
         }
