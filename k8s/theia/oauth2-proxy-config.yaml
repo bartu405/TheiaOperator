@@ -30,8 +30,7 @@ data:
     skip_provider_button=true
     reverse_proxy=true
     
-    # FIXED: Use .domain format for wildcard matching (includes all ports)
-    cookie_domains=[".theia.localtest.me"]
+    cookie_domains=[]
     whitelist_domains=[".theia.localtest.me:*", "theia.localtest.me:*", "192.168.1.56:*"]
     
     email_domains=["*"]
