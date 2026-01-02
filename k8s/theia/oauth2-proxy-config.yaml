@@ -8,7 +8,7 @@ data:
   oauth2-proxy.cfg: |
     # Provider config
     provider="keycloak-oidc"
-    oidc_issuer_url="http://192.168.1.56:8080/auth/realms/henkan"
+    oidc_issuer_url="http://192.168.19.251:8080/auth/realms/henkan"
     ssl_insecure_skip_verify=true
     
     # Placeholder for redirect URL (replaced by operator)
@@ -31,7 +31,7 @@ data:
     reverse_proxy=true
     
     cookie_domains=[]
-    whitelist_domains=[".theia.localtest.me:*", "theia.localtest.me:*", "192.168.1.56:*"]
+    whitelist_domains=[".theia.localtest.me:*", "theia.localtest.me:*", "192.168.19.251:*"]
     
     email_domains=["*"]
     insecure_oidc_allow_unverified_email=true
