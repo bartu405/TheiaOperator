@@ -103,8 +103,7 @@ class SessionIngress(
                 .build()
         }
 
-        val normalized = normalizeIngressRules(rules)
-        ingress.spec?.rules = normalized
+        ingress.spec?.rules = rules
         ingressClient.resource(ingress).createOrReplace()
 
         log.info(
@@ -229,19 +228,4 @@ class SessionIngress(
     private fun sessionPath(session: Session): String =
         "/${session.metadata?.uid}(/|$)(.*)"
 
-    /**
-     * Normalizes ingress rules by removing rules without HTTP paths.
-     * Only keeps rules that have actual paths defined.
-     */
-    private fun normalizeIngressRules(rules: List<IngressRule>): MutableList<IngressRule> {
-        val out = mutableListOf<IngressRule>()
-
-        for (r in rules) {
-            // Only keep rules that have actual paths
-            if (r.http != null) {
-                out.add(r)
-            }
-        }
-        return out
-    }
 }
