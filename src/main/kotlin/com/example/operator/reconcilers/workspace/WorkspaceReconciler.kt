@@ -202,8 +202,24 @@ class WorkspaceReconciler(
         }
 
         if (volumeStatus.status == "Exists") {
-            status.volumeClaim = VolumeStatus(status = "finished", message = "")
-            status.volumeAttach = VolumeStatus(status = "finished", message = "") // Theia-ish
+
+            // FIRST time: emit "claimed"
+            if (status.volumeAttach?.status != "claimed") {
+                status.volumeClaim = VolumeStatus(status = "finished", message = "")
+                status.volumeAttach = VolumeStatus(
+                    status = "claimed",
+                    message = "PVC is bound"
+                )
+                status.error = null
+                status.operatorStatus = "HANDLING"
+                status.operatorMessage = "PVC bound, finalizing workspace"
+
+                return UpdateControl.patchStatus(resource)
+                    .rescheduleAfter(Duration.ofSeconds(1))
+            }
+
+            // SECOND time: finalize to "finished"
+            status.volumeAttach = VolumeStatus(status = "finished", message = "")
             status.error = null
             status.operatorStatus = "HANDLED"
             status.operatorMessage = "Workspace reconciled successfully"
@@ -218,6 +234,8 @@ class WorkspaceReconciler(
             status.operatorMessage = "Failed to reconcile workspace PVC: ${volumeStatus.message}"
             status.error = volumeStatus.message
         }
+
+
 
         // One write to the primary resource:
         // - if spec or metadata changed -> patch resource + status together
