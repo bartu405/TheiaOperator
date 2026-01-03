@@ -1,7 +1,8 @@
-package com.example.operator.reconcilers
+package com.example.operator.reconcilers.appdefinition
 
 import com.example.operator.AppDefinition
 import com.example.operator.AppDefinitionStatus
+import com.example.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Context
@@ -9,7 +10,6 @@ import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
-import ownerRef
 
 @ControllerConfiguration(name = "appdefinition-controller")
 class AppDefinitionReconciler(
@@ -55,7 +55,7 @@ class AppDefinitionReconciler(
             }
 
             if (!hasNonControllerRef) {
-                cleaned.add(ownerRef(resource)) // ✅ Henkan-like ownerRef (non-controller)
+                cleaned.add(OwnerRefs.ownerRef(resource)) // ✅ Henkan-like ownerRef (non-controller)
                 val patched = IngressBuilder(existing)
                     .editMetadata()
                     .withOwnerReferences(cleaned)

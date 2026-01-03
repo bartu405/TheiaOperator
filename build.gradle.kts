@@ -26,9 +26,9 @@ dependencies {
 
 }
 
-// Main setting for hello operator
+// Main setting for operator
 application {
-    mainClass.set("com.example.hello.MainKt")
+    mainClass.set("com.example.operator.MainKt")
 }
 
 

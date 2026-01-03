@@ -2,9 +2,9 @@
 package com.example.operator
 
 import com.example.operator.config.CliConfigParser
-import com.example.operator.reconcilers.AppDefinitionReconciler
+import com.example.operator.reconcilers.appdefinition.AppDefinitionReconciler
 import com.example.operator.reconcilers.session.SessionReconciler
-import com.example.operator.reconcilers.WorkspaceReconciler
+import com.example.operator.reconcilers.workspace.WorkspaceReconciler
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.javaoperatorsdk.operator.Operator
 

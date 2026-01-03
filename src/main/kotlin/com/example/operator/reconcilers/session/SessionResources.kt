@@ -5,7 +5,7 @@ import com.example.operator.Session
 import com.example.operator.config.OperatorConfig
 import com.example.operator.naming.SessionNaming
 import com.example.operator.utils.TemplateRenderer
-import controllerOwnerRef
+import com.example.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder
 import io.fabric8.kubernetes.api.model.EnvVar
 import io.fabric8.kubernetes.client.KubernetesClient
@@ -96,7 +96,7 @@ class SessionResources(
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
-            r.metadata.ownerReferences = listOf(controllerOwnerRef(owner))
+            r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
     }
@@ -128,7 +128,7 @@ class SessionResources(
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
-            r.metadata.ownerReferences = listOf(controllerOwnerRef(owner))
+            r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
 
@@ -185,7 +185,7 @@ class SessionResources(
             .addToLabels("app.kubernetes.io/component", "session")
             .addToLabels("theia-cloud.io/session-uid", sessionUid)
             .addToLabels("theia-cloud.io/template-purpose", "proxy")
-            .withOwnerReferences(controllerOwnerRef(owner))
+            .withOwnerReferences(OwnerRefs.controllerOwnerRef(owner))
             .endMetadata()
             .addToData("oauth2-proxy.cfg", rendered)
             .build()
@@ -215,7 +215,7 @@ class SessionResources(
             .addToLabels("theia-cloud.io/session", sessionName)
             .addToLabels("theia-cloud.io/user", user)
             .addToLabels("theia-cloud.io/template-purpose", "emails")
-            .withOwnerReferences(controllerOwnerRef(owner))
+            .withOwnerReferences(OwnerRefs.controllerOwnerRef(owner))
             .endMetadata()
             .addToData("authenticated-emails-list", user)
             .build()

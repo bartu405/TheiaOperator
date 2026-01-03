@@ -72,4 +72,19 @@ object WorkspaceNaming {
 
         return valid.lowercase(Locale("en", "US"))
     }
+
+    fun deriveWorkspaceShortName(wsIdOrName: String, user: String): String {
+        val sanitizedUser = user
+            .replace(Regex("[^a-zA-Z0-9-]"), "")
+            .replace(Regex("-+"), "-")
+            .trim('-')
+
+        val prefix = "$sanitizedUser-"
+        return if (wsIdOrName.startsWith(prefix) && wsIdOrName.length > prefix.length) {
+            wsIdOrName.removePrefix(prefix)
+        } else {
+            wsIdOrName
+        }
+    }
+
 }

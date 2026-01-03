@@ -7,7 +7,8 @@ import com.example.operator.SessionStatus
 import com.example.operator.Workspace
 import com.example.operator.config.OperatorConfig
 import com.example.operator.naming.SessionNaming
-import controllerOwnerRef
+import com.example.operator.naming.Labeling
+import com.example.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.EnvVar
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner
@@ -190,7 +191,7 @@ class SessionReconciler(
         val newRefs = existingRefs
             .filterNot { it.controller == true }
             .toMutableList()
-        newRefs.add(controllerOwnerRef(workspace))
+        newRefs.add(OwnerRefs.controllerOwnerRef(workspace))
         meta.ownerReferences = newRefs
         metadataChanged = true
 
@@ -212,9 +213,9 @@ class SessionReconciler(
             }
         }
 
-        putIfMissing("app.henkan.io/workspaceName", SessionNaming.toHenkanLabelValue(nonNullWorkspaceName))
-        putIfMissing("app.henkan.io/workspaceUser", SessionNaming.toHenkanLabelValue(user))
-        putIfMissing("app.henkan.io/henkanProjectName", SessionNaming.toHenkanLabelValue(workspace.spec?.label))
+        putIfMissing("app.henkan.io/workspaceName", Labeling.toLabelValue(nonNullWorkspaceName))
+        putIfMissing("app.henkan.io/workspaceUser", Labeling.toLabelValue(user))
+        putIfMissing("app.henkan.io/henkanProjectName", Labeling.toLabelValue(workspace.spec?.label))
         meta.labels = labels
 
         // --- 10) Build environment variables
@@ -257,7 +258,7 @@ class SessionReconciler(
         val runAsUid = appSpec.uid ?: defaultUid
         val fsGroupUid = appSpec.uid ?: defaultUid
 
-        val appLabel = SessionNaming.toHenkanLabelValue("${nonNullSessionName}-${sessionUid}")
+        val appLabel = Labeling.toLabelValue("${nonNullSessionName}-${sessionUid}")
             ?: "${nonNullSessionName}-${sessionUid}"
 
         // --- 12) Check for ingress existence
