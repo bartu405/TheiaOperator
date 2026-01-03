@@ -1,5 +1,5 @@
 // File: OperatorConfig.kt
-package com.example.hello
+package com.example.operator.config
 
 data class OperatorConfig(
     val ingressHost: String = "theia.localtest.me",

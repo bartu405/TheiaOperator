@@ -1,4 +1,5 @@
-package com.example.hello
+// File: TheiaResources.kt
+package com.example.operator
 
 import io.fabric8.kubernetes.api.model.Namespaced
 import io.fabric8.kubernetes.client.CustomResource

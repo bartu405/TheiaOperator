@@ -1,13 +1,19 @@
-// File: WorkspaceReconciler.kt
-package com.example.hello
+package com.example.operator.reconcilers
 
+import com.example.operator.AppDefinition
+import com.example.operator.config.OperatorConfig
+import com.example.operator.utils.TemplateRenderer
+import com.example.operator.naming.WorkspaceNaming
+import com.example.operator.VolumeStatus
+import com.example.operator.Workspace
+import com.example.operator.WorkspaceStatus
+import controllerOwnerRef
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
-import controllerOwnerRef
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
@@ -246,7 +252,7 @@ class WorkspaceReconciler(
         val ns = wsMeta.namespace ?: "default"
 
         val pvcName = try {
-            TheiaNaming.workspaceStorageName(ws)
+            WorkspaceNaming.workspaceStorageName(ws)
         } catch (e: Exception) {
             return EnsurePvcResult(
                 volumeStatus = VolumeStatus(status = "ERROR", message = "Failed to compute storage name: ${e.message}"),

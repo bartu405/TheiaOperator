@@ -1,5 +1,5 @@
 // File: CliConfigParser.kt
-package com.example.hello
+package com.example.operator.config
 
 object CliConfigParser {
     fun parse(args: Array<String>): OperatorConfig {
@@ -18,7 +18,7 @@ object CliConfigParser {
 
             appId = get("--appId"),
             ingressScheme =
-            (get("--ingressScheme") ?: System.getenv("INGRESS_SCHEME") ?: "https").trim(),
+                (get("--ingressScheme") ?: System.getenv("INGRESS_SCHEME") ?: "https").trim(),
 
             instancesHost =
                 (get("--instancesHost") ?: System.getenv("INSTANCES_HOST") ?: "theia.localtest.me").trim(),

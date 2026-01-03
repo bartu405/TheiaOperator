@@ -1,7 +1,10 @@
-// File: NamingUtils.kt
-package com.example.hello
+// File: WorkspaceNaming.kt
+package com.example.operator.naming
 
-object TheiaNaming {
+import com.example.operator.Workspace
+import java.util.Locale
+
+object WorkspaceNaming {
     private const val VALID_NAME_LIMIT = 62
     private const val VALID_NAME_PREFIX = 'a'
     private const val VALID_NAME_SUFFIX = 'z'
@@ -67,6 +70,6 @@ object TheiaNaming {
             valid = valid.dropLast(1) + VALID_NAME_SUFFIX
         }
 
-        return valid.lowercase(java.util.Locale("en", "US"))
+        return valid.lowercase(Locale("en", "US"))
     }
 }

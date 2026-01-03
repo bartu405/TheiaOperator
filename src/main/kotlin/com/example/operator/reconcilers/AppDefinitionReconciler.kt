@@ -1,9 +1,13 @@
-// File: AppDefinitionReconciler.kt
-package com.example.hello
+package com.example.operator.reconcilers
 
-import io.fabric8.kubernetes.client.KubernetesClient
+import com.example.operator.AppDefinition
+import com.example.operator.AppDefinitionStatus
 import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
-import io.javaoperatorsdk.operator.api.reconciler.*
+import io.fabric8.kubernetes.client.KubernetesClient
+import io.javaoperatorsdk.operator.api.reconciler.Context
+import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
+import io.javaoperatorsdk.operator.api.reconciler.Reconciler
+import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
 import ownerRef
 
