@@ -8,20 +8,32 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
-  creationTimestamp: "2025-12-18T10:42:07Z"
-  generation: 7
+  creationTimestamp: "2026-01-04T07:49:34Z"
+  generation: 2
   name: sample-app-ingress
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
       kind: AppDefinition
       name: sample-app
-      uid: 012aebb0-f89a-42cd-9e6c-5045c6d095de
-  resourceVersion: "1936980"
-  uid: 186878fd-9d33-49e7-bf48-b253417be1f9
+      uid: 1a99e47e-9c4c-4d0a-aa4d-d87c37bb9741
+  resourceVersion: "133185"
+  uid: 0bb526c0-2f77-467a-8c32-dc83786ad0e9
 spec:
   ingressClassName: nginx
   rules:
     - host: theia.localtest.me
+    - host: theia.localtest.me
+      http:
+        paths:
+          - backend:
+              service:
+                name: session-bartu-sample-app-e6ece5b6f290
+                port:
+                  number: 3000
+            path: /a0e8af80-626a-4285-b152-e6ece5b6f290(/|$)(.*)
+            pathType: ImplementationSpecific
 status:
-  loadBalancer: {}
+  loadBalancer:
+    ingress:
+      - ip: 10.98.95.61

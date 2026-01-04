@@ -13,6 +13,7 @@ data:
     
     # Placeholder for redirect URL (replaced by operator)
     redirect_url="http://placeholder-host/SESSION_UID_PLACEHOLDER/oauth2/callback"
+    redirect_url_path="/SESSION_UID_PLACEHOLDER/"
     
     # Client config
     client_id="henkan-designer"

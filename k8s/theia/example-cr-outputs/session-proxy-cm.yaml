@@ -1,0 +1,51 @@
+apiVersion: v1
+data:
+  oauth2-proxy.cfg: |
+    # Provider config
+    provider="keycloak-oidc"
+    oidc_issuer_url="http://10.51.38.31:8080/auth/realms/henkan"
+    ssl_insecure_skip_verify=true
+
+    # Placeholder for redirect URL (replaced by operator)
+    redirect_url="http://theia.localtest.me:8080/a0e8af80-626a-4285-b152-e6ece5b6f290/oauth2/callback"
+
+    # Client config
+    client_id="henkan-designer"
+    client_secret="ozX1h8tTCm6N54zFAvyUBF2c1nduIoZe"
+    cookie_secret="a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+    cookie_secure=false
+
+    # Upstream config
+    http_address="0.0.0.0:5000"
+    upstreams="http://127.0.0.1:3000/"
+
+    # Proxy Config
+    user_id_claim="preferred_username"
+    skip_auth_routes=["/health.*","/monitor/.*"]
+    skip_provider_button=true
+    reverse_proxy=true
+
+    cookie_domains=["theia.localtest.me"]
+    whitelist_domains=["theia.localtest.me:*", ".theia.localtest.me:*"]
+
+    email_domains=["*"]
+    insecure_oidc_allow_unverified_email=true
+    custom_templates_dir="/templates"
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2026-01-04T07:49:35Z"
+  labels:
+    app.kubernetes.io/component: session
+    theia-cloud.io/session-uid: a0e8af80-626a-4285-b152-e6ece5b6f290
+    theia-cloud.io/template-purpose: proxy
+  name: session-proxy-bartu-sample-app-e6ece5b6f290
+  namespace: default
+  ownerReferences:
+    - apiVersion: example.suleyman.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Session
+      name: bartu-demo-ws
+      uid: a0e8af80-626a-4285-b152-e6ece5b6f290
+  resourceVersion: "133078"
+  uid: cd845888-1a0e-426c-bc87-ffc73568a1e9
