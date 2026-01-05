@@ -82,7 +82,7 @@ spec:
               mountPath: /emails
 
         # --- Main Theia application container ---
-        - name: theia
+        - name: ${appDefinitionName}
           image: ${image}
           imagePullPolicy: ${imagePullPolicy}
           ports:

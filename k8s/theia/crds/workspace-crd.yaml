@@ -2,9 +2,9 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: workspaces.example.suleyman.io
+  name: workspaces.theia.cloud
 spec:
-  group: example.suleyman.io
+  group: theia.cloud
   scope: Namespaced
   names:
     kind: Workspace

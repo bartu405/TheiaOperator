@@ -2,9 +2,9 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: sessions.example.suleyman.io
+  name: sessions.theia.cloud
 spec:
-  group: example.suleyman.io
+  group: theia.cloud
   scope: Namespaced
   names:
     kind: Session

@@ -5,7 +5,7 @@ metadata:
 spec:
   name: demo-session-2
   workspace: demo-ws-2        # same workspace on purpose
-  appDefinition: sample-app
+  appDefinition: henkan-designer
   user: bartu
   sessionSecret: "another-secret"
   envVars:

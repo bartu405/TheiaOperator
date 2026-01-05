@@ -2,14 +2,14 @@
 apiVersion: example.suleyman.io/v1
 kind: AppDefinition
 metadata:
-  name: sample-app
+  name: henkan-designer
   namespace: default
 spec:
-  name: sample-app
+  name: henkan-designer
   image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest  # keep blueprint for local
   imagePullPolicy: IfNotPresent
   pullSecret: regcred
-  ingressname: sample-app-ingress
+  ingressname: henkan-designer-ingress
   uid: 101
   port: 3000
   minInstances: 0

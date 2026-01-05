@@ -10,5 +10,5 @@ metadata:
 spec:
   name: bartu-demo-ws
   label: bartu-demo-workspace
-  appDefinition: sample-app
+  appDefinition: henkan-designer
   user: bartu

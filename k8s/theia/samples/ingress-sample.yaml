@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: sample-app-ingress
+  name: henkan-designer-ingress
   namespace: default
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"

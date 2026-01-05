@@ -10,7 +10,7 @@ metadata:
 spec:
   name: bartu-demo-ws
   workspace: bartu-demo-ws
-  appDefinition: sample-app
+  appDefinition: henkan-designer
   user: bartu
   sessionSecret: henkansecret
 
