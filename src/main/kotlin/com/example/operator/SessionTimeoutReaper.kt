@@ -91,6 +91,17 @@ class SessionTimeoutReaper(
                 return@forEach
             }
 
+            val status = session.status
+            if (status?.operatorStatus != "HANDLED") {
+                log.trace(
+                    "Session {}/{} not in HANDLED state (status={}), skipping timeout",
+                    ns,
+                    sessionName,
+                    status?.operatorStatus
+                )
+                return@forEach
+            }
+
             val creationTs = meta.creationTimestamp
             if (creationTs.isNullOrBlank()) {
                 log.warn(
