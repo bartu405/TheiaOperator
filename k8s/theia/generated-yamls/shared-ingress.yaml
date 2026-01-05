@@ -3,22 +3,22 @@ kind: Ingress
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/proxy-body-size":"1m","nginx.ingress.kubernetes.io/proxy-buffer-size":"128k","nginx.ingress.kubernetes.io/rewrite-target":"/$2","nginx.ingress.kubernetes.io/use-regex":"true"},"name":"sample-app-ingress","namespace":"default"},"spec":{"ingressClassName":"nginx","rules":[{"host":"theia.localtest.me"}]}}
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/proxy-body-size":"1m","nginx.ingress.kubernetes.io/proxy-buffer-size":"128k","nginx.ingress.kubernetes.io/rewrite-target":"/$2","nginx.ingress.kubernetes.io/use-regex":"true"},"name":"henkan-designer-ingress","namespace":"default"},"spec":{"ingressClassName":"nginx","rules":[{"host":"theia.localtest.me"}]}}
     nginx.ingress.kubernetes.io/proxy-body-size: 1m
     nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
-  creationTimestamp: "2026-01-04T07:49:34Z"
+  creationTimestamp: "2026-01-05T08:49:13Z"
   generation: 2
-  name: sample-app-ingress
+  name: henkan-designer-ingress
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
       kind: AppDefinition
-      name: sample-app
-      uid: 1a99e47e-9c4c-4d0a-aa4d-d87c37bb9741
-  resourceVersion: "133185"
-  uid: 0bb526c0-2f77-467a-8c32-dc83786ad0e9
+      name: henkan-designer
+      uid: cb715568-1406-426f-a754-10a210f9539c
+  resourceVersion: "163038"
+  uid: f32c4795-c08d-4d5d-99e1-a322e5e42818
 spec:
   ingressClassName: nginx
   rules:
@@ -28,10 +28,10 @@ spec:
         paths:
           - backend:
               service:
-                name: session-bartu-sample-app-e6ece5b6f290
+                name: session-bartu-henkan-designer-afc9ae836101
                 port:
                   number: 3000
-            path: /a0e8af80-626a-4285-b152-e6ece5b6f290(/|$)(.*)
+            path: /d25760cb-41d1-4b3e-92db-afc9ae836101(/|$)(.*)
             pathType: ImplementationSpecific
 status:
   loadBalancer:

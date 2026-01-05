@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   annotations:
     deployment.kubernetes.io/revision: "1"
-  creationTimestamp: "2026-01-03T12:37:14Z"
+  creationTimestamp: "2026-01-05T08:49:18Z"
   generation: 1
   labels:
-    app: bartu-demo-ws-1d870f39-3d38-4768-b40e-2597589b50f4
+    app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
-    theia-cloud.io/app-definition: sample-app
+    theia-cloud.io/app-definition: henkan-designer
     theia-cloud.io/session: bartu-demo-ws
     theia-cloud.io/user: bartu
-  name: session-bartu-sample-app-2597589b50f4
+  name: session-bartu-henkan-designer-afc9ae836101
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
@@ -20,16 +20,16 @@ metadata:
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: 1d870f39-3d38-4768-b40e-2597589b50f4
-  resourceVersion: "128354"
-  uid: c439ac7a-382c-4dd8-a01f-96871611019c
+      uid: d25760cb-41d1-4b3e-92db-afc9ae836101
+  resourceVersion: "163876"
+  uid: 089c0f99-96de-482d-b441-c43ea2eb5a1d
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: bartu-demo-ws-1d870f39-3d38-4768-b40e-2597589b50f4
+      app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -42,10 +42,10 @@ spec:
         kubernetes.io/ingress-bandwidth: 30000k
       creationTimestamp: null
       labels:
-        app: bartu-demo-ws-1d870f39-3d38-4768-b40e-2597589b50f4
+        app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
         app.kubernetes.io/component: session
         app.kubernetes.io/part-of: theia-cloud
-        theia-cloud.io/app-definition: sample-app
+        theia-cloud.io/app-definition: henkan-designer
         theia-cloud.io/session: bartu-demo-ws
         theia-cloud.io/user: bartu
     spec:
@@ -79,15 +79,15 @@ spec:
             - name: THEIACLOUD_APP_ID
               value: sample-app-test
             - name: THEIACLOUD_SERVICE_URL
-              value: http://session-bartu-sample-app-2597589b50f4:3000
+              value: http://session-bartu-henkan-designer-afc9ae836101:3000
             - name: THEIACLOUD_SESSION_UID
-              value: 1d870f39-3d38-4768-b40e-2597589b50f4
+              value: d25760cb-41d1-4b3e-92db-afc9ae836101
             - name: THEIACLOUD_SESSION_NAME
               value: bartu-demo-ws
             - name: THEIACLOUD_SESSION_USER
               value: bartu
             - name: THEIACLOUD_SESSION_URL
-              value: http://theia.localtest.me/1d870f39-3d38-4768-b40e-2597589b50f4/
+              value: http://theia.localtest.me/d25760cb-41d1-4b3e-92db-afc9ae836101/
             - name: THEIACLOUD_SESSION_SECRET
               value: henkansecret
             - name: THEIACLOUD_KEYCLOAK_URL
@@ -116,7 +116,7 @@ spec:
               value: busra
           image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
           imagePullPolicy: IfNotPresent
-          name: theia
+          name: henkan-designer
           ports:
             - containerPort: 3000
               name: application
@@ -149,10 +149,10 @@ spec:
       volumes:
         - name: workspace
           persistentVolumeClaim:
-            claimName: ws-bartu-sample-app-604486568146
+            claimName: ws-bartu-henkan-designer-efa6a4b2e790
         - configMap:
             defaultMode: 420
-            name: session-proxy-bartu-sample-app-2597589b50f4
+            name: session-proxy-bartu-henkan-desi-afc9ae836101
           name: oauth2-proxy-config
         - configMap:
             defaultMode: 420
@@ -160,24 +160,24 @@ spec:
           name: oauth2-templates
         - configMap:
             defaultMode: 420
-            name: session-email-bartu-sample-app-2597589b50f4
+            name: session-email-bartu-henkan-desi-afc9ae836101
           name: oauth2-emails
 status:
   availableReplicas: 1
   conditions:
-    - lastTransitionTime: "2026-01-03T12:37:16Z"
-      lastUpdateTime: "2026-01-03T12:37:16Z"
+    - lastTransitionTime: "2026-01-05T08:49:18Z"
+      lastUpdateTime: "2026-01-05T08:49:20Z"
+      message: ReplicaSet "session-bartu-henkan-designer-afc9ae836101-59ff67974d" has
+        successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    - lastTransitionTime: "2026-01-05T08:58:30Z"
+      lastUpdateTime: "2026-01-05T08:58:30Z"
       message: Deployment has minimum availability.
       reason: MinimumReplicasAvailable
       status: "True"
       type: Available
-    - lastTransitionTime: "2026-01-03T12:37:14Z"
-      lastUpdateTime: "2026-01-03T12:37:16Z"
-      message: ReplicaSet "session-bartu-sample-app-2597589b50f4-dbdd6c745" has successfully
-        progressed.
-      reason: NewReplicaSetAvailable
-      status: "True"
-      type: Progressing
   observedGeneration: 1
   readyReplicas: 1
   replicas: 1

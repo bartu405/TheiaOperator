@@ -3,24 +3,24 @@ kind: AppDefinition
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"example.suleyman.io/v1","kind":"AppDefinition","metadata":{"annotations":{},"name":"sample-app","namespace":"default"},"spec":{"downlinkLimit":30000,"image":"ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest","imagePullPolicy":"IfNotPresent","ingressname":"sample-app-ingress","limitsCpu":"2","limitsMemory":"1200Mi","maxInstances":50,"minInstances":0,"mountPath":"/home/henkan/project","name":"sample-app","port":3000,"pullSecret":"regcred","requestsCpu":"100m","requestsMemory":"1000Mi","timeout":180,"uid":101,"uplinkLimit":30000}}
-  creationTimestamp: "2025-12-18T10:42:07Z"
+      {"apiVersion":"example.suleyman.io/v1","kind":"AppDefinition","metadata":{"annotations":{},"name":"henkan-designer","namespace":"default"},"spec":{"downlinkLimit":30000,"image":"ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest","imagePullPolicy":"IfNotPresent","ingressname":"henkan-designer-ingress","limitsCpu":"2","limitsMemory":"1200Mi","maxInstances":50,"minInstances":0,"mountPath":"/home/henkan/project","name":"henkan-designer","port":3000,"pullSecret":"regcred","requestsCpu":"100m","requestsMemory":"1000Mi","timeout":180,"uid":101,"uplinkLimit":30000}}
+  creationTimestamp: "2026-01-05T08:49:14Z"
   generation: 1
-  name: sample-app
+  name: henkan-designer
   namespace: default
-  resourceVersion: "1933843"
-  uid: 012aebb0-f89a-42cd-9e6c-5045c6d095de
+  resourceVersion: "162917"
+  uid: cb715568-1406-426f-a754-10a210f9539c
 spec:
   downlinkLimit: 30000
   image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
   imagePullPolicy: IfNotPresent
-  ingressname: sample-app-ingress
+  ingressname: henkan-designer-ingress
   limitsCpu: "2"
   limitsMemory: 1200Mi
   maxInstances: 50
   minInstances: 0
   mountPath: /home/henkan/project
-  name: sample-app
+  name: henkan-designer
   port: 3000
   pullSecret: regcred
   requestsCpu: 100m

@@ -1,15 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: "2025-12-18T11:06:15Z"
+  creationTimestamp: "2026-01-05T08:49:18Z"
   labels:
-    app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
+    app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
-    theia-cloud.io/app-definition: sample-app
+    theia-cloud.io/app-definition: henkan-designer
     theia-cloud.io/session: bartu-demo-ws
     theia-cloud.io/user: bartu
-  name: theia-bartu-demo-ws
+  name: session-bartu-henkan-designer-afc9ae836101
   namespace: default
   ownerReferences:
     - apiVersion: example.suleyman.io/v1
@@ -17,13 +17,13 @@ metadata:
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: d20d3875-1b30-4482-bb62-c093ce10461b
-  resourceVersion: "1937652"
-  uid: 7bf941b0-d31a-4762-a92a-0395dbde225b
+      uid: d25760cb-41d1-4b3e-92db-afc9ae836101
+  resourceVersion: "162959"
+  uid: 9707c186-189e-4c4a-9bd2-f53cc4e0ebac
 spec:
-  clusterIP: 10.109.45.214
+  clusterIP: 10.104.180.131
   clusterIPs:
-    - 10.109.45.214
+    - 10.104.180.131
   internalTrafficPolicy: Cluster
   ipFamilies:
     - IPv4
@@ -34,7 +34,7 @@ spec:
       protocol: TCP
       targetPort: web
   selector:
-    app: bartu-demo-ws-d20d3875-1b30-4482-bb62-c093ce10461b
+    app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
   sessionAffinity: None
   type: ClusterIP
 status:
