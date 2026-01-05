@@ -17,22 +17,6 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
-/*
-1. **Generates storage names** rather than requiring them upfront
-2. **Updates the workspace spec** with the generated storage name
-3. **Sets appropriate status** at each stage like Theia Cloud does
-4. **Includes a `hasStorage()`** helper method like in Theia Cloud
-5. **Maintains ownership relationships** between resources
-
-Key Theia Cloud-like behaviors:
-- The storage field isn't required upfront - it gets generated and set during reconciliation
-- Progress is tracked with detailed status updates
-- The storage name follows a predictable pattern based on the workspace name
-- Owner references ensure proper resource lifecycle management
-- The PVC is properly labeled for identification
-- The code now handles both cases: workspaces that don't yet have storage defined, and existing workspaces that already have storage configured.
-*/
-
 @ControllerConfiguration(
     name = "workspace-controller"
 )
