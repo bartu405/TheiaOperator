@@ -11,10 +11,8 @@ spec:
     listKind: SessionList
     plural: sessions
     singular: session
-    shortNames:
-      - sess
   versions:
-    - name: v1
+    - name: v1beta8
       served: true
       storage: true
       subresources:
@@ -22,58 +20,36 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
+          required: [spec]
           properties:
             spec:
               type: object
+              required: [name, user, appDefinition]
               properties:
-                # Logical session name (Theia-style)
                 name:
                   type: string
-                  pattern: '^[a-z0-9A-Z-_]+$'
-
-                # Workspace this session belongs to
-                workspace:
-                  type: string
-
-                # Cached from workspace (AppDefinition name)
-                appDefinition:
-                  type: string
-                  pattern: '^[a-z0-9A-Z-_]+$'
-
-                # Cached from workspace
+                  pattern: "^[a-z0-9A-Z-_]+$"
                 user:
                   type: string
-
-                # Optional reference to some secret for the session
+                appDefinition:
+                  type: string
+                  pattern: "^[a-z0-9A-Z-_]+$"
+                workspace:
+                  type: string
                 sessionSecret:
                   type: string
-
-                # Arbitrary options, int-or-string just like Theia Cloud
-                options:
-                  type: object
-                  additionalProperties:
-                    x-kubernetes-int-or-string: true
-
-                # Extra env vars
                 envVars:
                   type: object
                   additionalProperties:
                     x-kubernetes-int-or-string: true
-
                 envVarsFromConfigMaps:
                   type: array
                   items:
                     type: string
-
                 envVarsFromSecrets:
                   type: array
                   items:
                     type: string
-              required:
-                - name
-                - user
-                - workspace
-                - appDefinition
             status:
               type: object
               properties:
@@ -87,5 +63,3 @@ spec:
                   type: string
                 lastActivity:
                   type: integer
-          required:
-            - spec

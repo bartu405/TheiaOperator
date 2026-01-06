@@ -1,12 +1,12 @@
 # File: appdefinition-sample.yaml
-apiVersion: example.suleyman.io/v1
+apiVersion: theia.cloud/v1beta10
 kind: AppDefinition
 metadata:
   name: henkan-designer
   namespace: default
 spec:
   name: henkan-designer
-  image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest  # keep blueprint for local
+  image: ghcr.io/eclipse-theia/theia-blueprint/theia-ide:latest
   imagePullPolicy: IfNotPresent
   pullSecret: regcred
   ingressname: henkan-designer-ingress

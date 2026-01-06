@@ -1,4 +1,4 @@
-apiVersion: example.suleyman.io/v1
+apiVersion: theia.cloud/v1beta8
 kind: Session
 metadata:
   name: bartu-demo-ws

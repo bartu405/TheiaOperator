@@ -11,11 +11,9 @@ spec:
     listKind: AppDefinitionList
     plural: appdefinitions
     singular: appdefinition
-    shortNames:
-      - appdef
-      - ad
+    shortNames: [appdef, ad]
   versions:
-    - name: v1
+    - name: v1beta10
       served: true
       storage: true
       subresources:
@@ -23,12 +21,25 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
+          required: [spec]
           properties:
             spec:
               type: object
               x-kubernetes-validations:
                 - rule: "self.minInstances <= self.maxInstances"
                   message: "minInstances should be less or equal than maxInstances."
+              required:
+                - name
+                - image
+                - uid
+                - port
+                - ingressname
+                - minInstances
+                - maxInstances
+                - requestsCpu
+                - requestsMemory
+                - limitsMemory
+                - limitsCpu
               properties:
                 name:
                   type: string
@@ -37,7 +48,7 @@ spec:
                   type: string
                 imagePullPolicy:
                   type: string
-                  enum: ["Always", "IfNotPresent", "Never"]
+                  enum: [Always, IfNotPresent, Never]
                 pullSecret:
                   type: string
                 uid:
@@ -48,10 +59,6 @@ spec:
                   maximum: 65535
                 ingressname:
                   type: string
-                ingressHostnamePrefixes:
-                  type: array
-                  items:
-                    type: string
                 minInstances:
                   type: integer
                 maxInstances:
@@ -84,19 +91,6 @@ spec:
                           type: integer
                         notifyAfter:
                           type: integer
-
-              required:
-                - name
-                - image
-                - uid
-                - port
-                - ingressname
-                - minInstances
-                - maxInstances
-                - requestsCpu
-                - requestsMemory
-                - limitsMemory
-                - limitsCpu
             status:
               type: object
               properties:
@@ -104,5 +98,3 @@ spec:
                   type: string
                 operatorMessage:
                   type: string
-          required:
-            - spec

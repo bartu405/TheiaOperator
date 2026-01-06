@@ -30,7 +30,7 @@ class SessionReconciler(
 ) : Reconciler<Session>, Cleaner<Session> {
 
     companion object {
-        const val FINALIZER_NAME = "sessions.example.suleyman.io/finalizer"
+        const val FINALIZER_NAME = "sessions.theia.cloud/finalizer"
         private const val SERVICE_PORT_NAME = "http"
     }
 

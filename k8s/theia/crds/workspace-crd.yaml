@@ -11,10 +11,9 @@ spec:
     listKind: WorkspaceList
     plural: workspaces
     singular: workspace
-    shortNames:
-      - ws
+    shortNames: [ws]
   versions:
-    - name: v1
+    - name: v1beta5
       served: true
       storage: true
       subresources:
@@ -22,42 +21,32 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
+          required: [spec]
           properties:
             spec:
               type: object
+              required: [name, user]
               properties:
-                # Logical name of the workspace (Theia-style)
                 name:
                   type: string
-                  pattern: '^[a-z0-9A-Z-_]+$'
-
-                # Human readable label
-                label:
-                  type: string
-
-
-                appDefinition:
-                  type: string
-                  pattern: '^[a-z0-9A-Z-_]+$'
-
-                # User who created / owns the workspace
+                  pattern: "^[a-z0-9A-Z-_]+$"
                 user:
                   type: string
-
-                # name of the PVC that backs this workspace
+                appDefinition:
+                  type: string
+                  pattern: "^[a-z0-9A-Z-_]+$"
+                label:
+                  type: string
                 storage:
                   type: string
-
-              required:
-                - name
-                - user
-                - appDefinition
             status:
               type: object
               properties:
                 operatorStatus:
                   type: string
                 operatorMessage:
+                  type: string
+                error:
                   type: string
                 volumeClaim:
                   type: object
@@ -73,7 +62,3 @@ spec:
                       type: string
                     message:
                       type: string
-                error:
-                  type: string
-          required:
-            - spec

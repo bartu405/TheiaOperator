@@ -16,7 +16,6 @@ class AppDefinitionSpec {
     var uid: Int? = null
     var port: Int? = null
     var ingressname: String? = null
-    var ingressHostnamePrefixes: List<String>? = null
     var minInstances: Int? = null
     var maxInstances: Int? = null
     var timeout: Int? = null
@@ -28,7 +27,6 @@ class AppDefinitionSpec {
     var uplinkLimit: Int? = null
     var mountPath: String? = null
     var monitor: MonitorSpec? = null
-    var options: Map<String, String>? = null
 }
 
 class MonitorSpec {
@@ -47,8 +45,8 @@ class AppDefinitionStatus {
 }
 
 
-@Group("example.suleyman.io")
-@Version("v1")
+@Group("theia.cloud")
+@Version("v1beta10")
 class AppDefinition :
     CustomResource<AppDefinitionSpec, AppDefinitionStatus>(),
     Namespaced
@@ -72,16 +70,14 @@ class VolumeStatus(
 class WorkspaceStatus {
     var operatorStatus: String? = null
     var operatorMessage: String? = null
-
     var volumeClaim: VolumeStatus? = null
     var volumeAttach: VolumeStatus? = null
-
     var error: String? = null
 
 }
 
-@Group("example.suleyman.io")
-@Version("v1")
+@Group("theia.cloud")
+@Version("v1beta5")
 class Workspace :
     CustomResource<WorkspaceSpec, WorkspaceStatus>(),
     Namespaced
@@ -95,12 +91,8 @@ class SessionSpec {
     var workspace: String? = null
     var appDefinition: String? = null
     var user: String? = null
-
     var sessionSecret: String? = null
-
-    var options: Map<String, String>? = null
-    var envVars: Map<String, String>? = null
-
+    var envVars: Map<String, Any>? = null
     var envVarsFromConfigMaps: List<String>? = null
     var envVarsFromSecrets: List<String>? = null
 }
@@ -113,8 +105,8 @@ class SessionStatus {
     var lastActivity: Long? = null
 }
 
-@Group("example.suleyman.io")
-@Version("v1")
+@Group("theia.cloud")
+@Version("v1beta8")
 class Session :
     CustomResource<SessionSpec, SessionStatus>(),
     Namespaced
