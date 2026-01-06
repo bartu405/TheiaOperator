@@ -1,33 +1,82 @@
-# File: appdefinition-crd.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: appdefinitions.theia.cloud
 spec:
   group: theia.cloud
-  scope: Namespaced
   names:
     kind: AppDefinition
     listKind: AppDefinitionList
     plural: appdefinitions
+    shortNames:
+      - appdef
+      - ad
     singular: appdefinition
-    shortNames: [appdef, ad]
+  scope: Namespaced
   versions:
     - name: v1beta10
-      served: true
-      storage: true
-      subresources:
-        status: {}
       schema:
         openAPIV3Schema:
-          type: object
-          required: [spec]
           properties:
             spec:
-              type: object
-              x-kubernetes-validations:
-                - rule: "self.minInstances <= self.maxInstances"
-                  message: "minInstances should be less or equal than maxInstances."
+              properties:
+                downlinkLimit:
+                  type: integer
+                image:
+                  type: string
+                imagePullPolicy:
+                  enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                  type: string
+                ingressname:
+                  type: string
+                limitsCpu:
+                  type: string
+                limitsMemory:
+                  type: string
+                maxInstances:
+                  type: integer
+                minInstances:
+                  type: integer
+                monitor:
+                  properties:
+                    activityTracker:
+                      properties:
+                        notifyAfter:
+                          type: integer
+                        timeoutAfter:
+                          type: integer
+                      type: object
+                    port:
+                      type: integer
+                  type: object
+                mountPath:
+                  type: string
+                name:
+                  pattern: ^[a-z0-9A-Z-_]+$
+                  type: string
+                options:
+                  additionalProperties:
+                    x-kubernetes-int-or-string: true
+                  type: object
+                port:
+                  maximum: 65535
+                  minimum: 0
+                  type: integer
+                pullSecret:
+                  type: string
+                requestsCpu:
+                  type: string
+                requestsMemory:
+                  type: string
+                timeout:
+                  type: integer
+                uid:
+                  type: integer
+                uplinkLimit:
+                  type: integer
               required:
                 - name
                 - image
@@ -40,61 +89,21 @@ spec:
                 - requestsMemory
                 - limitsMemory
                 - limitsCpu
-              properties:
-                name:
-                  type: string
-                  pattern: "^[a-z0-9A-Z-_]+$"
-                image:
-                  type: string
-                imagePullPolicy:
-                  type: string
-                  enum: [Always, IfNotPresent, Never]
-                pullSecret:
-                  type: string
-                uid:
-                  type: integer
-                port:
-                  type: integer
-                  minimum: 0
-                  maximum: 65535
-                ingressname:
-                  type: string
-                minInstances:
-                  type: integer
-                maxInstances:
-                  type: integer
-                timeout:
-                  type: integer
-                requestsMemory:
-                  type: string
-                requestsCpu:
-                  type: string
-                limitsMemory:
-                  type: string
-                limitsCpu:
-                  type: string
-                downlinkLimit:
-                  type: integer
-                uplinkLimit:
-                  type: integer
-                mountPath:
-                  type: string
-                monitor:
-                  type: object
-                  properties:
-                    port:
-                      type: integer
-                    activityTracker:
-                      type: object
-                      properties:
-                        timeoutAfter:
-                          type: integer
-                        notifyAfter:
-                          type: integer
-            status:
               type: object
+              x-kubernetes-validations:
+                - message: minInstances should be less or equal than maxInstances.
+                  rule: self.minInstances <= self.maxInstances
+            status:
               properties:
-                operatorStatus:
-                  type: string
                 operatorMessage:
                   type: string
+                operatorStatus:
+                  type: string
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
