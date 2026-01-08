@@ -156,25 +156,19 @@ class SessionResources(
         val host = config.instancesHost ?: "theia.localtest.me"
         val scheme = config.ingressScheme.ifBlank { "http" }
 
-        val hostWithPort = "$host:8080"
+
+        // Build the full host WITH session UID path (like Theia Cloud does)
+        val fullHost = "${host}/${sessionUid}"
         val upstream = "http://127.0.0.1:$port/"
 
-        // Replace placeholders in order
+
+        // Simple replacements (like Theia Cloud)
         var rendered = baseCfg
+            .replace("http://placeholder", "${scheme}://${fullHost}")  // ← Single replacement!
             .replace("ISSUER_URL_PLACEHOLDER", issuerUrl)
-            .replace("SESSION_UID_PLACEHOLDER", sessionUid)
-            .replace("http://127.0.0.1:placeholder-port/", upstream)
+            .replace("placeholder-port", port.toString())
+            .replace("placeholder-domain", host)
 
-        // Replace placeholder-host in redirect_url BEFORE replacing in cookie_domains
-        rendered = rendered.replace(
-            "redirect_url=\"http://placeholder-host/",
-            "redirect_url=\"${scheme}://${hostWithPort}/"
-        )
-
-        // Now replace remaining placeholder-host (in cookie_domains)
-        rendered = rendered.replace("placeholder-host", host)
-
-        log.info("Rendered oauth2-proxy.cfg for session {}:\n{}", sessionUid, rendered)
 
         val name = SessionNaming.sessionProxyCmName(user, appDefName, sessionUid)
 
