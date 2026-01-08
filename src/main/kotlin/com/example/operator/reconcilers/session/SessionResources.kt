@@ -135,6 +135,8 @@ class SessionResources(
         log.info("Rendered Service YAML:\n{}", yaml)
     }
 
+    // In file: src/main/kotlin/.../reconcilers/session/SessionResources.kt
+
     fun ensureSessionProxyConfigMap(
         namespace: String,
         user: String,
@@ -144,48 +146,47 @@ class SessionResources(
         port: Int,
         owner: Session
     ): String {
-        val baseName = "oauth2-proxy-config"
-        val base = client.configMaps().inNamespace(namespace).withName(baseName).get()
-            ?: throw IllegalStateException("Missing ConfigMap '$baseName' in namespace '$namespace'")
-
-        val baseCfg = base.data?.get("oauth2-proxy.cfg")
-            ?: throw IllegalStateException("ConfigMap '$baseName' missing key 'oauth2-proxy.cfg'")
-
-        // Calculate dynamic values
+        // 1. Calculate the values needed for the template
         val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
         val host = config.instancesHost ?: "theia.localtest.me"
         val scheme = config.ingressScheme.ifBlank { "http" }
 
-
-        // Build the full host WITH session UID path (like Theia Cloud does)
+        // Construct URLs
         val fullHost = "${host}/${sessionUid}"
-        val upstream = "http://127.0.0.1:$port/"
+        val redirectUrl = "${scheme}://${fullHost}/oauth2/callback"
+        val upstreamUrl = "http://127.0.0.1:$port/"
 
+        // Generate the ConfigMap name
+        val cmName = SessionNaming.sessionProxyCmName(user, appDefName, sessionUid)
 
-        // Simple replacements (like Theia Cloud)
-        var rendered = baseCfg
-            .replace("http://placeholder", "${scheme}://${fullHost}")  // ← Single replacement!
-            .replace("ISSUER_URL_PLACEHOLDER", issuerUrl)
-            .replace("placeholder-port", port.toString())
-            .replace("placeholder-domain", host)
+        // 2. Prepare the model for Velocity
+        val model = mapOf(
+            "configMapName" to cmName,
+            "namespace" to namespace,
+            "sessionUid" to sessionUid,
+            "redirectUrl" to redirectUrl,
+            "issuerUrl" to issuerUrl,
+            "upstreamUrl" to upstreamUrl,
+            "cookieDomain" to host,
+        )
 
+        // 3. Render the YAML from the template
+        val yaml = TemplateRenderer.render(
+            "templates/theia-oauth2-proxy-config.yaml.vm",
+            model
+        )
 
-        val name = SessionNaming.sessionProxyCmName(user, appDefName, sessionUid)
+        // 4. Load the YAML into a Kubernetes Resource object
+        val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
 
-        val cm = ConfigMapBuilder()
-            .withNewMetadata()
-            .withName(name)
-            .withNamespace(namespace)
-            .addToLabels("app.kubernetes.io/component", "session")
-            .addToLabels("theia-cloud.io/session-uid", sessionUid)
-            .addToLabels("theia-cloud.io/template-purpose", "proxy")
-            .withOwnerReferences(OwnerRefs.controllerOwnerRef(owner))
-            .endMetadata()
-            .addToData("oauth2-proxy.cfg", rendered)
-            .build()
+        // 5. Apply it with OwnerReferences (just like Deployment)
+        resources.forEach { r ->
+            r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
+            client.resource(r).inNamespace(namespace).createOrReplace()
+        }
 
-        client.configMaps().inNamespace(namespace).resource(cm).createOrReplace()
-        return name
+        log.info("Ensured Session Proxy ConfigMap: {}", cmName)
+        return cmName
     }
 
     fun ensureSessionEmailConfigMap(
