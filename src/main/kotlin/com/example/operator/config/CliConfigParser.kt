@@ -15,19 +15,10 @@ object CliConfigParser {
             keycloakUrl = get("--keycloakURL") ?: System.getenv("THEIACLOUD_KEYCLOAK_URL"),
             keycloakRealm = get("--keycloakRealm") ?: System.getenv("THEIACLOUD_KEYCLOAK_REALM"),
             keycloakClientId = get("--keycloakClientId") ?: System.getenv("THEIACLOUD_KEYCLOAK_CLIENT_ID"),
-
             appId = get("--appId"),
-            ingressScheme =
-                (get("--ingressScheme") ?: System.getenv("INGRESS_SCHEME") ?: "https").trim(),
-
-            instancesHost =
-                (get("--instancesHost") ?: System.getenv("INSTANCES_HOST") ?: "theia.localtest.me").trim(),
-
-
-            oAuth2ProxyImage = get("--oAuth2ProxyVersion")
-                ?: System.getenv("OAUTH2_PROXY_IMAGE")
-                ?: "quay.io/oauth2-proxy/oauth2-proxy:v7.6.0",
-
+            ingressScheme = (get("--ingressScheme") ?: System.getenv("INGRESS_SCHEME") ?: "https").trim(),
+            instancesHost = (get("--instancesHost") ?: System.getenv("INSTANCES_HOST") ?: "theia.localtest.me").trim(),
+            oAuth2ProxyImage = get("--oAuth2ProxyVersion") ?: System.getenv("OAUTH2_PROXY_IMAGE") ?: "quay.io/oauth2-proxy/oauth2-proxy:v7.6.0",
             storageClassName = get("--storageClassName"),
             requestedStorage = get("--requestedStorage"),
             sessionsPerUser = get("--sessionsPerUser")?.toIntOrNull(),
