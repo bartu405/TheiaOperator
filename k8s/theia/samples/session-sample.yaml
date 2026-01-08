@@ -24,4 +24,3 @@ spec:
     GIT_AUTHOR_NAME: bartu405
     GIT_SSL_NO_VERIFY: "true"
     COMMIT_GENAI_ENDPOINT: https://example.com/webhook/xyz
-
