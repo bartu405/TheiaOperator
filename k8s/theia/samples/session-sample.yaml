@@ -19,9 +19,9 @@ spec:
     HENKAN_PROJECT_GIT_URL: https://github.com/GlobalMaksimum/henkan-etl-flow-project.git
     HENKAN_META_API_URL: http://henkan-metaapi.henkan-metaapi
     HENKAN_GIT_USER: bartu
-    HENKAN_GIT_EMAIL: bartu@globalmaksimum.com
-    EMAIL: bartu@globalmaksimum.com
-    GIT_AUTHOR_NAME: bartu
+    HENKAN_GIT_EMAIL: bartu.kacar@globalmaksimum.com
+    EMAIL: bartu.kacar@globalmaksimum.com
+    GIT_AUTHOR_NAME: bartu405
     GIT_SSL_NO_VERIFY: "true"
     COMMIT_GENAI_ENDPOINT: https://example.com/webhook/xyz
 
