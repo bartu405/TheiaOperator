@@ -135,8 +135,6 @@ class SessionResources(
         log.info("Rendered Service YAML:\n{}", yaml)
     }
 
-    // In file: src/main/kotlin/.../reconcilers/session/SessionResources.kt
-
     fun ensureSessionProxyConfigMap(
         namespace: String,
         user: String,
