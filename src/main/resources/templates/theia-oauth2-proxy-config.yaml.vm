@@ -1,5 +1,4 @@
 # File: theia-oauth2-proxy.config.yaml.vm
-
 apiVersion: v1
 kind: ConfigMap
 metadata:

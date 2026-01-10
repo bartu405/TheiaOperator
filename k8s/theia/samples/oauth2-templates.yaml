@@ -1,4 +1,4 @@
-# File: k8s/samples/oauth2-templates.yaml
+# File: oauth2-templates.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
