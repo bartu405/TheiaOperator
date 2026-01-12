@@ -8,7 +8,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: 1m
     nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-  creationTimestamp: "2026-01-09T09:16:51Z"
+  creationTimestamp: "2026-01-12T11:52:34Z"
   generation: 2
   name: henkan-designer-ingress
   namespace: default
@@ -16,9 +16,9 @@ metadata:
     - apiVersion: theia.cloud/v1beta10
       kind: AppDefinition
       name: henkan-designer
-      uid: 8adb9bb0-debf-4256-90eb-9a33a8bb126a
-  resourceVersion: "254660"
-  uid: cab08d26-9e78-4944-8d2f-3e6fdc142ca7
+      uid: 8e9d216d-798b-4604-9597-424a9b455266
+  resourceVersion: "300497"
+  uid: 3334883b-881f-4ef1-ab23-efa39fdce403
 spec:
   ingressClassName: nginx
   rules:
@@ -28,10 +28,10 @@ spec:
         paths:
           - backend:
               service:
-                name: session-bartu-henkan-designer-a0317b8123a3
+                name: session-bartu-henkan-designer-30611b8f5917
                 port:
                   number: 3000
-            path: /b74796c6-37e6-4eda-8b33-a0317b8123a3(/|$)(.*)
+            path: /95474d16-0681-4f99-9d65-30611b8f5917(/|$)(.*)
             pathType: ImplementationSpecific
 status:
   loadBalancer:

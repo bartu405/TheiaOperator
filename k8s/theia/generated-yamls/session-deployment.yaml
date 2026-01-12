@@ -3,33 +3,33 @@ kind: Deployment
 metadata:
   annotations:
     deployment.kubernetes.io/revision: "1"
-  creationTimestamp: "2026-01-05T08:49:18Z"
+  creationTimestamp: "2026-01-12T11:52:35Z"
   generation: 1
   labels:
-    app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
+    app: bartu-demo-ws-95474d16-0681-4f99-9d65-30611b8f5917
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
     theia-cloud.io/app-definition: henkan-designer
     theia-cloud.io/session: bartu-demo-ws
     theia-cloud.io/user: bartu
-  name: session-bartu-henkan-designer-afc9ae836101
+  name: session-bartu-henkan-designer-30611b8f5917
   namespace: default
   ownerReferences:
-    - apiVersion: example.suleyman.io/v1
+    - apiVersion: theia.cloud/v1beta8
       blockOwnerDeletion: true
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: d25760cb-41d1-4b3e-92db-afc9ae836101
-  resourceVersion: "163876"
-  uid: 089c0f99-96de-482d-b441-c43ea2eb5a1d
+      uid: 95474d16-0681-4f99-9d65-30611b8f5917
+  resourceVersion: "300436"
+  uid: 91a686a4-d458-4228-a279-b74c07e5cf7a
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
+      app: bartu-demo-ws-95474d16-0681-4f99-9d65-30611b8f5917
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -42,7 +42,7 @@ spec:
         kubernetes.io/ingress-bandwidth: 30000k
       creationTimestamp: null
       labels:
-        app: bartu-demo-ws-d25760cb-41d1-4b3e-92db-afc9ae836101
+        app: bartu-demo-ws-95474d16-0681-4f99-9d65-30611b8f5917
         app.kubernetes.io/component: session
         app.kubernetes.io/part-of: theia-cloud
         theia-cloud.io/app-definition: henkan-designer
@@ -57,7 +57,7 @@ spec:
             - --gcp-healthchecks
             - --reverse-proxy
             - --skip-auth-route=/monitor/*
-          image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.1
           imagePullPolicy: IfNotPresent
           name: oauth2-proxy
           ports:
@@ -77,21 +77,21 @@ spec:
               name: oauth2-emails
         - env:
             - name: THEIACLOUD_APP_ID
-              value: sample-app-test
+              value: henkan
             - name: THEIACLOUD_SERVICE_URL
-              value: http://session-bartu-henkan-designer-afc9ae836101:3000
+              value: http://session-bartu-henkan-designer-30611b8f5917:3000
             - name: THEIACLOUD_SESSION_UID
-              value: d25760cb-41d1-4b3e-92db-afc9ae836101
+              value: 95474d16-0681-4f99-9d65-30611b8f5917
             - name: THEIACLOUD_SESSION_NAME
               value: bartu-demo-ws
             - name: THEIACLOUD_SESSION_USER
               value: bartu
             - name: THEIACLOUD_SESSION_URL
-              value: http://theia.localtest.me/d25760cb-41d1-4b3e-92db-afc9ae836101/
+              value: http://theia.localtest.me/95474d16-0681-4f99-9d65-30611b8f5917/
             - name: THEIACLOUD_SESSION_SECRET
               value: henkansecret
             - name: THEIACLOUD_KEYCLOAK_URL
-              value: http://10.51.38.31:8080/auth/
+              value: http://192.168.10.101:8080/auth/
             - name: THEIACLOUD_KEYCLOAK_REALM
               value: henkan
             - name: THEIACLOUD_KEYCLOAK_CLIENT_ID
@@ -99,13 +99,13 @@ spec:
             - name: COMMIT_GENAI_ENDPOINT
               value: https://example.com/webhook/xyz
             - name: EMAIL
-              value: bartu@globalmaksimum.com
+              value: bartu.kacar@globalmaksimum.com
             - name: GIT_AUTHOR_NAME
-              value: bartu
+              value: bartu405
             - name: GIT_SSL_NO_VERIFY
               value: "true"
             - name: HENKAN_GIT_EMAIL
-              value: bartu@globalmaksimum.com
+              value: bartu.kacar@globalmaksimum.com
             - name: HENKAN_GIT_USER
               value: bartu
             - name: HENKAN_META_API_URL
@@ -149,10 +149,10 @@ spec:
       volumes:
         - name: workspace
           persistentVolumeClaim:
-            claimName: ws-bartu-henkan-designer-efa6a4b2e790
+            claimName: ws-bartu-henkan-designer-e6585688027a
         - configMap:
             defaultMode: 420
-            name: session-proxy-bartu-henkan-desi-afc9ae836101
+            name: session-proxy-bartu-henkan-desi-30611b8f5917
           name: oauth2-proxy-config
         - configMap:
             defaultMode: 420
@@ -160,24 +160,24 @@ spec:
           name: oauth2-templates
         - configMap:
             defaultMode: 420
-            name: session-email-bartu-henkan-desi-afc9ae836101
+            name: session-email-bartu-henkan-desi-30611b8f5917
           name: oauth2-emails
 status:
   availableReplicas: 1
   conditions:
-    - lastTransitionTime: "2026-01-05T08:49:18Z"
-      lastUpdateTime: "2026-01-05T08:49:20Z"
-      message: ReplicaSet "session-bartu-henkan-designer-afc9ae836101-59ff67974d" has
-        successfully progressed.
-      reason: NewReplicaSetAvailable
-      status: "True"
-      type: Progressing
-    - lastTransitionTime: "2026-01-05T08:58:30Z"
-      lastUpdateTime: "2026-01-05T08:58:30Z"
+    - lastTransitionTime: "2026-01-12T11:52:37Z"
+      lastUpdateTime: "2026-01-12T11:52:37Z"
       message: Deployment has minimum availability.
       reason: MinimumReplicasAvailable
       status: "True"
       type: Available
+    - lastTransitionTime: "2026-01-12T11:52:35Z"
+      lastUpdateTime: "2026-01-12T11:52:37Z"
+      message: ReplicaSet "session-bartu-henkan-designer-30611b8f5917-5547f87d59" has
+        successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
   observedGeneration: 1
   readyReplicas: 1
   replicas: 1

@@ -3,7 +3,7 @@ data:
   oauth2-proxy.cfg: |-
     # Provider config
     provider="keycloak-oidc"
-    redirect_url="http://theia.localtest.me/e31e0801-d524-43ab-b4b7-5458ccf8c851/oauth2/callback"
+    redirect_url="http://theia.localtest.me/95474d16-0681-4f99-9d65-30611b8f5917/oauth2/callback"
     oidc_issuer_url="http://192.168.10.101:8080/auth/realms/henkan"
     ssl_insecure_skip_verify=true
 
@@ -29,7 +29,7 @@ data:
     custom_templates_dir="/templates"
 kind: ConfigMap
 metadata:
-  creationTimestamp: "2026-01-12T11:35:09Z"
+  creationTimestamp: "2026-01-12T11:52:35Z"
   labels:
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
@@ -37,7 +37,7 @@ metadata:
     theia-cloud.io/session: bartu-demo-ws
     theia-cloud.io/template-purpose: proxy
     theia-cloud.io/user: bartu
-  name: session-proxy-bartu-henkan-desi-5458ccf8c851
+  name: session-proxy-bartu-henkan-desi-30611b8f5917
   namespace: default
   ownerReferences:
     - apiVersion: theia.cloud/v1beta8
@@ -45,6 +45,6 @@ metadata:
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: e31e0801-d524-43ab-b4b7-5458ccf8c851
-  resourceVersion: "298768"
-  uid: 380b5928-4cce-4c8b-b4f8-0b785305e097
+      uid: 95474d16-0681-4f99-9d65-30611b8f5917
+  resourceVersion: "300398"
+  uid: 5a31e2ae-547e-4f20-91bc-c460a516e95d
