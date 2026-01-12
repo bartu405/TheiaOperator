@@ -1,3 +1,4 @@
+# Example generated configmap
 apiVersion: v1
 data:
   oauth2-proxy.cfg: |
