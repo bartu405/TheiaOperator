@@ -16,9 +16,9 @@ spec:
   maxInstances: 50
   timeout: 180
   requestsCpu: 100m
-  requestsMemory: 1000Mi
+  requestsMemory: 1000M
   limitsCpu: "2"
-  limitsMemory: 1200Mi
+  limitsMemory: 1200M
   downlinkLimit: 30000
   uplinkLimit: 30000
   mountPath: /home/henkan/project
