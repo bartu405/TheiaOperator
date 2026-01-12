@@ -4,7 +4,7 @@ metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
       {"apiVersion":"theia.cloud/v1beta5","kind":"Workspace","metadata":{"annotations":{},"labels":{"app.henkan.io/henkanProjectName":"bartu-demo-workspace","app.henkan.io/workspaceName":"demo-ws","app.henkan.io/workspaceUser":"bartu"},"name":"bartu-demo-ws","namespace":"default"},"spec":{"appDefinition":"henkan-designer","label":"bartu-demo-workspace","name":"bartu-demo-ws","user":"bartu"}}
-  creationTimestamp: "2026-01-12T11:52:35Z"
+  creationTimestamp: "2026-01-12T12:14:42Z"
   generation: 2
   labels:
     app.henkan.io/henkanProjectName: bartu-demo-workspace
@@ -19,20 +19,20 @@ metadata:
       kind: AppDefinition
       name: henkan-designer
       uid: 8e9d216d-798b-4604-9597-424a9b455266
-  resourceVersion: "300397"
-  uid: cd5e9007-7f7c-48f6-b353-e6585688027a
+  resourceVersion: "302478"
+  uid: 363bb9fa-229f-48c7-bd5e-6caf74ab7d8c
 spec:
   appDefinition: henkan-designer
   label: bartu-demo-workspace
   name: bartu-demo-ws
-  storage: ws-bartu-henkan-designer-e6585688027a
+  storage: ws-bartu-henkan-designer-6caf74ab7d8c
   user: bartu
 status:
-  operatorMessage: PVC bound, finalizing workspace
-  operatorStatus: HANDLING
+  operatorMessage: Workspace handled
+  operatorStatus: HANDLED
   volumeAttach:
-    message: PVC is bound
-    status: claimed
+    message: ""
+    status: finished
   volumeClaim:
     message: ""
     status: finished

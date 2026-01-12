@@ -186,27 +186,10 @@ class WorkspaceReconciler(
         }
 
         if (volumeStatus.status == "Exists") {
-
-            // FIRST time: emit "claimed"
-            if (status.volumeAttach?.status != "claimed") {
-                status.volumeClaim = VolumeStatus(status = "finished", message = "")
-                status.volumeAttach = VolumeStatus(
-                    status = "claimed",
-                    message = "PVC is bound"
-                )
-                status.error = null
-                status.operatorStatus = "HANDLING"
-                status.operatorMessage = "PVC bound, finalizing workspace"
-
-                return UpdateControl.patchStatus(resource)
-                    .rescheduleAfter(Duration.ofSeconds(1))
-            }
-
-            // SECOND time: finalize to "finished"
-            status.volumeAttach = VolumeStatus(status = "finished", message = "")
-            status.error = null
+            status.volumeClaim = VolumeStatus("finished", "")
+            status.volumeAttach = VolumeStatus("finished", "")
             status.operatorStatus = "HANDLED"
-            status.operatorMessage = "Workspace reconciled successfully"
+            status.operatorMessage = "Workspace handled"
         }
         else {
             status.volumeClaim = volumeStatus
