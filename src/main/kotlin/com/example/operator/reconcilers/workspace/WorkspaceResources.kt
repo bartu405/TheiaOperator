@@ -86,15 +86,6 @@ class WorkspaceResources(
         val size = config.requestedStorage?.takeIf { it.isNotBlank() } ?: "5Gi"
         val storageClassName = config.storageClassName?.takeIf { it.isNotBlank() }
 
-        // Labels for PVC
-        val spec = ws.spec!!
-        val workspaceNameRaw = WorkspaceNaming.deriveWorkspaceShortName(spec.name!!, spec.user!!)
-        val workspaceUserRaw = spec.user
-        val projectNameRaw = spec.label
-
-        val workspaceNameLabel = Labeling.toLabelValue(workspaceNameRaw) ?: workspaceNameRaw
-        val workspaceUserLabel = Labeling.toLabelValue(workspaceUserRaw) ?: workspaceUserRaw
-        val projectNameLabel = Labeling.toLabelValue(projectNameRaw)
 
         if (existing != null) {
             // Update owner refs on PVC
@@ -111,18 +102,14 @@ class WorkspaceResources(
                 existing.metadata.ownerReferences = cleanedRefs + OwnerRefs.controllerOwnerRef(ws)
             }
 
-            // Ensure Henkan labels on PVC
             val pvcLabels = (existing.metadata.labels ?: emptyMap()).toMutableMap()
 
-            if (!pvcLabels.containsKey("app.henkan.io/workspaceName")) {
-                workspaceNameLabel?.let { pvcLabels["app.henkan.io/workspaceName"] = it }
+            if (!pvcLabels.containsKey("theia-cloud.io/workspace-name")) {
+                pvcLabels["theia-cloud.io/workspace-name"] = wsMeta.name!!
+                existing.metadata.labels = pvcLabels
+                pvcClient.resource(existing).patch()
             }
-            if (!pvcLabels.containsKey("app.henkan.io/workspaceUser")) {
-                workspaceUserLabel?.let { pvcLabels["app.henkan.io/workspaceUser"] = it }
-            }
-            if (!pvcLabels.containsKey("app.henkan.io/henkanProjectName")) {
-                projectNameLabel?.let { pvcLabels["app.henkan.io/henkanProjectName"] = it }
-            }
+
 
             existing.metadata.labels = pvcLabels
             pvcClient.resource(existing).patch()
@@ -139,13 +126,8 @@ class WorkspaceResources(
         }
 
         val labels = mutableMapOf(
-            "app" to "theia-workspace",
-            "workspace-name" to wsName,
-            "theia-cloud.io/workspace-name" to wsName,
+            "theia-cloud.io/workspace-name" to wsName
         )
-        workspaceNameLabel?.let { labels["app.henkan.io/workspaceName"] = it }
-        workspaceUserLabel?.let { labels["app.henkan.io/workspaceUser"] = it }
-        projectNameLabel?.let { labels["app.henkan.io/henkanProjectName"] = it }
 
         log.info("PVC {} not found in namespace {}, creating it", pvcName, ns)
 
