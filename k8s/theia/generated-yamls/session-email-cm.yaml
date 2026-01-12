@@ -3,7 +3,7 @@ data:
   authenticated-emails-list: bartu
 kind: ConfigMap
 metadata:
-  creationTimestamp: "2026-01-05T08:49:18Z"
+  creationTimestamp: "2026-01-12T11:35:09Z"
   labels:
     app.kubernetes.io/component: session
     app.kubernetes.io/part-of: theia-cloud
@@ -11,14 +11,14 @@ metadata:
     theia-cloud.io/session: bartu-demo-ws
     theia-cloud.io/template-purpose: emails
     theia-cloud.io/user: bartu
-  name: session-email-bartu-henkan-desi-afc9ae836101
+  name: session-email-bartu-henkan-desi-5458ccf8c851
   namespace: default
   ownerReferences:
-    - apiVersion: example.suleyman.io/v1
+    - apiVersion: theia.cloud/v1beta8
       blockOwnerDeletion: true
       controller: true
       kind: Session
       name: bartu-demo-ws
-      uid: d25760cb-41d1-4b3e-92db-afc9ae836101
-  resourceVersion: "162945"
-  uid: 0a2450cf-6f60-4d2b-83dc-e1b4704974be
+      uid: e31e0801-d524-43ab-b4b7-5458ccf8c851
+  resourceVersion: "298769"
+  uid: f073b223-b7f5-485b-a0cf-ad7ff612862c

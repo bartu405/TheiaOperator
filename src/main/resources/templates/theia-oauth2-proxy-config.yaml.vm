@@ -4,10 +4,6 @@ kind: ConfigMap
 metadata:
   name: ${configMapName}
   namespace: ${namespace}
-  labels:
-    app.kubernetes.io/component: session
-    theia-cloud.io/session-uid: ${sessionUid}
-    theia-cloud.io/template-purpose: proxy
 data:
   oauth2-proxy.cfg: |
     # Provider config

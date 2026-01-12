@@ -149,15 +149,35 @@ class SessionResources(
         val host = config.instancesHost ?: "theia.localtest.me"
         val scheme = config.ingressScheme.ifBlank { "http" }
 
-        // Construct URLs
         val fullHost = "${host}/${sessionUid}"
         val redirectUrl = "${scheme}://${fullHost}/oauth2/callback"
         val upstreamUrl = "http://127.0.0.1:$port/"
 
-        // Generate the ConfigMap name
         val cmName = SessionNaming.sessionProxyCmName(user, appDefName, sessionUid)
 
-        // 2. Prepare the model for Velocity
+        // 2. Check if ConfigMap already exists and get existing labels
+        val existingCm = client.configMaps()
+            .inNamespace(namespace)
+            .withName(cmName)
+            .get()
+
+        val labels = existingCm?.metadata?.labels?.toMutableMap() ?: mutableMapOf()
+
+        // 3. Add labels only if missing (don't override henkan-server's labels)
+        fun putIfMissing(k: String, v: String?) {
+            if (!v.isNullOrBlank() && !labels.containsKey(k)) {
+                labels[k] = v
+            }
+        }
+
+        putIfMissing("app.kubernetes.io/component", "session")
+        putIfMissing("app.kubernetes.io/part-of", "theia-cloud")
+        putIfMissing("theia-cloud.io/app-definition", appDefName)
+        putIfMissing("theia-cloud.io/session", sessionName)
+        putIfMissing("theia-cloud.io/template-purpose", "proxy")
+        putIfMissing("theia-cloud.io/user", user)
+
+        // 4. Prepare the model for Velocity
         val model = mapOf(
             "configMapName" to cmName,
             "namespace" to namespace,
@@ -168,18 +188,17 @@ class SessionResources(
             "cookieDomain" to host,
         )
 
-        // 3. Render the YAML from the template
+        // 5. Render the YAML from the template
         val yaml = TemplateRenderer.render(
             "templates/theia-oauth2-proxy-config.yaml.vm",
             model
         )
 
-        // 4. Load the YAML into a Kubernetes Resource object
+        // 6. Load and apply with merged labels
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
-
-        // 5. Apply it with OwnerReferences (just like Deployment)
         resources.forEach { r ->
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
+            r.metadata.labels = labels  // Just use the merged labels directly
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
 
@@ -197,17 +216,34 @@ class SessionResources(
     ): String {
         val name = SessionNaming.sessionEmailCmName(user, appDefName, sessionUid)
 
+        // Check if ConfigMap already exists and get existing labels
+        val existingCm = client.configMaps()
+            .inNamespace(namespace)
+            .withName(name)
+            .get()
+
+        val labels = existingCm?.metadata?.labels?.toMutableMap() ?: mutableMapOf()
+
+        // Add labels only if missing
+        fun putIfMissing(k: String, v: String?) {
+            if (!v.isNullOrBlank() && !labels.containsKey(k)) {
+                labels[k] = v
+            }
+        }
+
+        putIfMissing("app.kubernetes.io/component", "session")
+        putIfMissing("app.kubernetes.io/part-of", "theia-cloud")
+        putIfMissing("theia-cloud.io/app-definition", appDefName)
+        putIfMissing("theia-cloud.io/session", sessionName)
+        putIfMissing("theia-cloud.io/user", user)
+        putIfMissing("theia-cloud.io/template-purpose", "emails")
+
         // Store username (e.g., "bartu") not email
         val cm = ConfigMapBuilder()
             .withNewMetadata()
             .withName(name)
             .withNamespace(namespace)
-            .addToLabels("app.kubernetes.io/component", "session")
-            .addToLabels("app.kubernetes.io/part-of", "theia-cloud")
-            .addToLabels("theia-cloud.io/app-definition", appDefName)
-            .addToLabels("theia-cloud.io/session", sessionName)
-            .addToLabels("theia-cloud.io/user", user)
-            .addToLabels("theia-cloud.io/template-purpose", "emails")
+            .addToLabels(labels)
             .withOwnerReferences(OwnerRefs.controllerOwnerRef(owner))
             .endMetadata()
             .addToData("authenticated-emails-list", user)
