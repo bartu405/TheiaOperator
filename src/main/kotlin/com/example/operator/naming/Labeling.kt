@@ -6,14 +6,6 @@ import kotlin.text.iterator
 object Labeling {
     private const val MAX_LABEL_VALUE_LEN = 63
 
-    /**
-     * Sanitizes a raw string into a Kubernetes-label-safe value using Henkan conventions.
-     * - lowercase
-     * - allow [a-z0-9-_.], replace others with '-'
-     * - collapse multiple '-' into one
-     * - trim '-', '_', '.' from start/end
-     * - limit to 63 chars (and re-trim)
-     */
     fun toLabelValue(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
 

@@ -30,7 +30,6 @@ object WorkspaceNaming {
     }
 
     private fun trimUid(uid: String): String {
-        // Java does substring(uid.length - 12, uid.length); safe Kotlin:
         return uid.takeLast(12)
     }
 

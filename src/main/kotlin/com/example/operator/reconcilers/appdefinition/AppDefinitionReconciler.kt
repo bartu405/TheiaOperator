@@ -22,15 +22,27 @@ class AppDefinitionReconciler(
         val ns = resource.metadata?.namespace ?: "default"
         val name = resource.metadata?.name ?: "<no-name>"
 
-        // ensure status exists
+        // Ensure status exists
         if (resource.status == null) resource.status = AppDefinitionStatus()
         val status = resource.status!!
 
-        // ensure spec exists
+        // Ensure spec exists
         val spec = resource.spec
         if (spec == null) {
-            status.operatorStatus = "Error"
+            status.operatorStatus = "ERROR"
             status.operatorMessage = "spec is null"
+            return UpdateControl.patchStatus(resource)
+        }
+
+        // Required fields validation
+        val specName = spec.name
+        val image = spec.image
+        val port = spec.port
+        val uid = spec.uid
+
+        if (specName.isNullOrBlank() || image.isNullOrBlank() || port == null || uid == null) {
+            status.operatorStatus = "ERROR"
+            status.operatorMessage = "Missing required fields: name, image, port, or uid"
             return UpdateControl.patchStatus(resource)
         }
 
@@ -43,27 +55,27 @@ class AppDefinitionReconciler(
             // Henkan mode: ingress is created by Helm / manually, not by operator
             log.info("Ingress '{}' not found for AppDefinition {}/{}. Create it manually (Henkan-like).", ingressName, ns, name)
         } else {
+            // IMPORTANT (Henkan/Theia-Cloud style):
+            // - treat the Ingress as Helm-managed / shared
+            // - do NOT "clean up" or normalize ownerReferences
+            // - append only if missing
             val owners = (existing.metadata.ownerReferences ?: emptyList()).toMutableList()
 
-            // remove any old controller=true ownerRef that points to THIS AppDefinition (cleanup)
-            val cleaned = owners.filterNot { ref ->
-                ref.controller == true && ref.uid == resource.metadata?.uid
-            }.toMutableList()
-
-            val hasNonControllerRef = cleaned.any { ref ->
+            val alreadyPresent = owners.any { ref ->
                 ref.uid == resource.metadata?.uid && ref.kind == resource.kind
             }
 
-            if (!hasNonControllerRef) {
-                cleaned.add(OwnerRefs.ownerRef(resource)) // ✅ Henkan-like ownerRef (non-controller)
-                val patched = IngressBuilder(existing)
-                    .editMetadata()
-                    .withOwnerReferences(cleaned)
-                    .endMetadata()
-                    .build()
+            if (!alreadyPresent) {
+                owners.add(OwnerRefs.ownerRef(resource)) // non-controller, informational
+                existing.metadata.ownerReferences = owners
 
-                ingressClient.resource(patched).createOrReplace()
-                log.info("Added non-controller ownerRef AppDefinition {}/{} -> Ingress '{}'", ns, name, ingressName)
+                // Patch only metadata; don't recreate/replace spec unintentionally
+                ingressClient.resource(existing).patch()
+
+                log.info(
+                    "Added non-controller ownerRef AppDefinition {}/{} -> Ingress '{}'",
+                    ns, name, ingressName
+                )
             }
         }
 

@@ -2,6 +2,7 @@
 package com.example.operator.reconcilers.workspace
 
 import com.example.operator.AppDefinition
+import com.example.operator.AppDefinitionStatus
 import com.example.operator.VolumeStatus
 import com.example.operator.Workspace
 import com.example.operator.WorkspaceStatus
@@ -37,10 +38,10 @@ class WorkspaceReconciler(
         val ns = resource.metadata?.namespace ?: "<no-namespace>"
         log.info("Reconciling Workspace {}/{}", ns, name)
 
-
-
         // Ensure status exists so we can update it safely
-        val status = ensureStatus(resource)
+        if (resource.status == null) resource.status = WorkspaceStatus()
+        val status = resource.status!!
+
 
         val opStatus = (status.operatorStatus ?: "NEW").uppercase()
         when (opStatus) {
@@ -54,8 +55,6 @@ class WorkspaceReconciler(
                 // (do nothing here and continue)
             }
         }
-
-
 
         val spec = resource.spec
         if (spec == null) {
@@ -202,8 +201,6 @@ class WorkspaceReconciler(
             status.error = volumeStatus.message
         }
 
-
-
         // One write to the primary resource:
         // - if spec or metadata changed -> patch resource + status together
         // - else -> patch only status
@@ -212,13 +209,6 @@ class WorkspaceReconciler(
         } else {
             UpdateControl.patchStatus(resource)
         }
-    }
-
-    private fun ensureStatus(resource: Workspace): WorkspaceStatus {
-        if (resource.status == null) {
-            resource.status = WorkspaceStatus()
-        }
-        return resource.status!!
     }
 
 }

@@ -6,7 +6,6 @@ import com.example.operator.Session
 import com.example.operator.config.OperatorConfig
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPathBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
-import io.fabric8.kubernetes.api.model.networking.v1.IngressRule
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder
 import io.fabric8.kubernetes.client.KubernetesClient
 import org.slf4j.LoggerFactory
