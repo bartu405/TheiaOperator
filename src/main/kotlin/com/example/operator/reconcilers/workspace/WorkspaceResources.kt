@@ -4,7 +4,6 @@ package com.example.operator.reconcilers.workspace
 import com.example.operator.VolumeStatus
 import com.example.operator.Workspace
 import com.example.operator.config.OperatorConfig
-import com.example.operator.naming.Labeling
 import com.example.operator.naming.WorkspaceNaming
 import com.example.operator.utils.TemplateRenderer
 import com.example.operator.utils.OwnerRefs
@@ -169,7 +168,7 @@ class WorkspaceResources(
         )
 
         return TemplateRenderer.render(
-            templatePath = "templates/theia-pvc.yaml.vm",
+            templatePath = "templates/pvc.yaml.vm",
             model = model
         )
     }

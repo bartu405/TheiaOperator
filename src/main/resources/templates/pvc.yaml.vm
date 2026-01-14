@@ -1,4 +1,4 @@
-# File: theia-pvc.yaml.vm
+# File: pvc.yaml.vm
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

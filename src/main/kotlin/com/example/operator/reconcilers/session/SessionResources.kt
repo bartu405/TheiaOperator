@@ -59,7 +59,7 @@ class SessionResources(
         )
 
         val yaml = TemplateRenderer.render(
-            "templates/theia-deployment.yaml.vm",
+            "templates/deployment.yaml.vm",
             mapOf(
                 "namespace" to namespace,
                 "deploymentName" to deploymentName,
@@ -112,7 +112,7 @@ class SessionResources(
         user: String,
     ) {
         val yaml = TemplateRenderer.render(
-            "templates/theia-service.yaml.vm",
+            "templates/service.yaml.vm",
             mapOf(
                 "namespace" to namespace,
                 "serviceName" to serviceName,
@@ -190,7 +190,7 @@ class SessionResources(
 
         // 5. Render the YAML from the template
         val yaml = TemplateRenderer.render(
-            "templates/theia-oauth2-proxy-config.yaml.vm",
+            "templates/oauth2-proxy-config.yaml.vm",
             model
         )
 

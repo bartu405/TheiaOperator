@@ -1,4 +1,4 @@
-// File: TheiaResources.kt
+// File: Resources.kt
 package com.example.operator
 
 import io.fabric8.kubernetes.api.model.Namespaced
