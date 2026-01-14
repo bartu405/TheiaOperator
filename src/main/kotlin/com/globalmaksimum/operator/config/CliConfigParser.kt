@@ -1,5 +1,5 @@
 // File: CliConfigParser.kt
-package com.example.operator.config
+package com.globalmaksimum.operator.config
 
 object CliConfigParser {
     fun parse(args: Array<String>): OperatorConfig {

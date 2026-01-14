@@ -1,7 +1,7 @@
 // File: WorkspaceNaming.kt
-package com.example.operator.naming
+package com.globalmaksimum.operator.naming
 
-import com.example.operator.Workspace
+import com.globalmaksimum.operator.Workspace
 import java.util.Locale
 
 object WorkspaceNaming {

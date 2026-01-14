@@ -1,15 +1,15 @@
 // File: WorkspaceReconciler.kt
-package com.example.operator.reconcilers.workspace
+package com.globalmaksimum.operator.reconcilers.workspace
 
-import com.example.operator.AppDefinition
-import com.example.operator.AppDefinitionStatus
-import com.example.operator.VolumeStatus
-import com.example.operator.Workspace
-import com.example.operator.WorkspaceStatus
-import com.example.operator.config.OperatorConfig
-import com.example.operator.naming.Labeling
-import com.example.operator.naming.WorkspaceNaming
-import com.example.operator.utils.OwnerRefs
+import com.globalmaksimum.operator.AppDefinition
+import com.globalmaksimum.operator.AppDefinitionStatus
+import com.globalmaksimum.operator.VolumeStatus
+import com.globalmaksimum.operator.Workspace
+import com.globalmaksimum.operator.WorkspaceStatus
+import com.globalmaksimum.operator.config.OperatorConfig
+import com.globalmaksimum.operator.naming.Labeling
+import com.globalmaksimum.operator.naming.WorkspaceNaming
+import com.globalmaksimum.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration

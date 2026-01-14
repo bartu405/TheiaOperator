@@ -1,5 +1,5 @@
 // File: Labeling.kt
-package com.example.operator.naming
+package com.globalmaksimum.operator.naming
 
 import kotlin.text.iterator
 

@@ -1,5 +1,5 @@
 // File: SessionTimeoutReaper.kt
-package com.example.operator
+package com.globalmaksimum.operator
 
 import io.fabric8.kubernetes.client.KubernetesClient
 import org.slf4j.LoggerFactory

@@ -1,9 +1,9 @@
 // File: SessionIngress.kt
-package com.example.operator.reconcilers.session
+package com.globalmaksimum.operator.reconcilers.session
 
-import com.example.operator.AppDefinition
-import com.example.operator.Session
-import com.example.operator.config.OperatorConfig
+import com.globalmaksimum.operator.AppDefinition
+import com.globalmaksimum.operator.Session
+import com.globalmaksimum.operator.config.OperatorConfig
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPathBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder

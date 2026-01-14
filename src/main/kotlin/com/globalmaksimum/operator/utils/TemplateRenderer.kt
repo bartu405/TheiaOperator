@@ -1,5 +1,5 @@
 // File: TemplateRenderer.kt
-package com.example.operator.utils
+package com.globalmaksimum.operator.utils
 
 import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.VelocityEngine

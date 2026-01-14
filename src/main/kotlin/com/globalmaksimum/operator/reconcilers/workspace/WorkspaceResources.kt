@@ -1,12 +1,12 @@
 // File: WorkspaceResources.kt
-package com.example.operator.reconcilers.workspace
+package com.globalmaksimum.operator.reconcilers.workspace
 
-import com.example.operator.VolumeStatus
-import com.example.operator.Workspace
-import com.example.operator.config.OperatorConfig
-import com.example.operator.naming.WorkspaceNaming
-import com.example.operator.utils.TemplateRenderer
-import com.example.operator.utils.OwnerRefs
+import com.globalmaksimum.operator.VolumeStatus
+import com.globalmaksimum.operator.Workspace
+import com.globalmaksimum.operator.config.OperatorConfig
+import com.globalmaksimum.operator.naming.WorkspaceNaming
+import com.globalmaksimum.operator.utils.TemplateRenderer
+import com.globalmaksimum.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim
 import io.fabric8.kubernetes.client.KubernetesClient
 import org.slf4j.LoggerFactory

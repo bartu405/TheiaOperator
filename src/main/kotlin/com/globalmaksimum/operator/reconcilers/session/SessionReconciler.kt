@@ -1,14 +1,14 @@
 // File: SessionReconciler.kt
-package com.example.operator.reconcilers.session
+package com.globalmaksimum.operator.reconcilers.session
 
-import com.example.operator.AppDefinition
-import com.example.operator.Session
-import com.example.operator.SessionStatus
-import com.example.operator.Workspace
-import com.example.operator.config.OperatorConfig
-import com.example.operator.naming.SessionNaming
-import com.example.operator.naming.Labeling
-import com.example.operator.utils.OwnerRefs
+import com.globalmaksimum.operator.AppDefinition
+import com.globalmaksimum.operator.Session
+import com.globalmaksimum.operator.SessionStatus
+import com.globalmaksimum.operator.Workspace
+import com.globalmaksimum.operator.config.OperatorConfig
+import com.globalmaksimum.operator.naming.SessionNaming
+import com.globalmaksimum.operator.naming.Labeling
+import com.globalmaksimum.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.EnvVar
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner
@@ -369,7 +369,7 @@ class SessionReconciler(
     }
 
     private fun buildEnvironmentVariables(
-        appSpec: com.example.operator.AppDefinitionSpec,
+        appSpec: com.globalmaksimum.operator.AppDefinitionSpec,
         appDef: AppDefinition,
         nonNullAppDefName: String,
         serviceUrl: String,
@@ -382,7 +382,7 @@ class SessionReconciler(
         hasActivityTracker: Boolean,
         activityTimeout: Int?,
         activityNotifyAfter: Int?,
-        spec: com.example.operator.SessionSpec,
+        spec: com.globalmaksimum.operator.SessionSpec,
         ns: String
     ): List<EnvVar> {
         val sessionEnvMap = spec.envVars ?: emptyMap()

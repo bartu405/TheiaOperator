@@ -1,11 +1,11 @@
 // File: SessionResources.kt
-package com.example.operator.reconcilers.session
+package com.globalmaksimum.operator.reconcilers.session
 
-import com.example.operator.Session
-import com.example.operator.config.OperatorConfig
-import com.example.operator.naming.SessionNaming
-import com.example.operator.utils.TemplateRenderer
-import com.example.operator.utils.OwnerRefs
+import com.globalmaksimum.operator.Session
+import com.globalmaksimum.operator.config.OperatorConfig
+import com.globalmaksimum.operator.naming.SessionNaming
+import com.globalmaksimum.operator.utils.TemplateRenderer
+import com.globalmaksimum.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder
 import io.fabric8.kubernetes.api.model.EnvVar
 import io.fabric8.kubernetes.client.KubernetesClient

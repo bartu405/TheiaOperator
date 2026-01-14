@@ -28,7 +28,7 @@ dependencies {
 
 // Main setting for operator
 application {
-    mainClass.set("com.example.operator.MainKt")
+    mainClass.set("com.globalmaksimum.operator.MainKt")
 }
 
 

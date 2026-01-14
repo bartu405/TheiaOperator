@@ -1,10 +1,10 @@
 // File: Main.kt
-package com.example.operator
+package com.globalmaksimum.operator
 
-import com.example.operator.config.CliConfigParser
-import com.example.operator.reconcilers.appdefinition.AppDefinitionReconciler
-import com.example.operator.reconcilers.session.SessionReconciler
-import com.example.operator.reconcilers.workspace.WorkspaceReconciler
+import com.globalmaksimum.operator.config.CliConfigParser
+import com.globalmaksimum.operator.reconcilers.appdefinition.AppDefinitionReconciler
+import com.globalmaksimum.operator.reconcilers.session.SessionReconciler
+import com.globalmaksimum.operator.reconcilers.workspace.WorkspaceReconciler
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.javaoperatorsdk.operator.Operator
 

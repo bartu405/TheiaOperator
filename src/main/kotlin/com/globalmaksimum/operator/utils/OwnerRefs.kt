@@ -1,5 +1,5 @@
 // File: OwnerRefs.kt
-package com.example.operator.utils
+package com.globalmaksimum.operator.utils
 
 import io.fabric8.kubernetes.api.model.HasMetadata
 import io.fabric8.kubernetes.api.model.OwnerReference

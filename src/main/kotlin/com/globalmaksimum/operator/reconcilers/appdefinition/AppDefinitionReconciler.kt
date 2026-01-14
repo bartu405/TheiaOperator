@@ -1,9 +1,8 @@
-package com.example.operator.reconcilers.appdefinition
+package com.globalmaksimum.operator.reconcilers.appdefinition
 
-import com.example.operator.AppDefinition
-import com.example.operator.AppDefinitionStatus
-import com.example.operator.utils.OwnerRefs
-import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
+import com.globalmaksimum.operator.AppDefinition
+import com.globalmaksimum.operator.AppDefinitionStatus
+import com.globalmaksimum.operator.utils.OwnerRefs
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration
