@@ -10,6 +10,7 @@ object WorkspaceNaming {
     private const val VALID_NAME_SUFFIX = 'z'
 
 
+    // ws-{identifier?}-{user}-{appDef}-{ws.uid}
     fun workspaceStorageName(ws: Workspace, identifier: String? = null): String {
         val user = ws.spec?.user
         val appDef = ws.spec?.appDefinition
@@ -38,6 +39,7 @@ object WorkspaceNaming {
         return text.take(max)
     }
 
+    // joins the segments
     private fun asValidNameSegments(vararg segments: String?): String {
         val joined = segments
             .filterNotNull()
@@ -47,7 +49,7 @@ object WorkspaceNaming {
         return asValidName(joined, VALID_NAME_LIMIT)
     }
 
-    // Mirrors NamingUtil.asValidName(String text, int limit)
+    // Mirrors NamingUtil.asValidName(String text, int limit), ensures kubernetes complience
     private fun asValidName(text: String, limit: Int): String {
         if (text.isEmpty()) return text
 
