@@ -20,6 +20,21 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
+/**
+ * Reconciler for Session custom resources.
+ *
+ * A Session represents a running instance of an IDE/application for a specific user and workspace.
+ *
+ * Responsibilities:
+ * 1. Validate session spec (name, workspace, appDefinition, user required)
+ * 2. Enforce constraints (one session per workspace, max sessions per user)
+ * 3. Load and validate AppDefinition and Workspace
+ * 4. Wait for Workspace PVC to be ready
+ * 5. Create Kubernetes resources (Deployment, Service, ConfigMaps)
+ * 6. Add session path to shared Ingress
+ * 7. Set owner reference (Workspace owns Session)
+ * 8. Cleanup Ingress path on deletion (via Cleaner interface)
+ */
 @ControllerConfiguration(
     name = "session-controller",
     finalizerName = SessionReconciler.FINALIZER_NAME
@@ -47,6 +62,11 @@ class SessionReconciler(
     private val ingressScheme: String = config.ingressScheme.trim()
 
     override fun reconcile(resource: Session, context: Context<Session>): UpdateControl<Session> {
+
+        // ============================================================
+        // SECTION 1: INITIALIZATION & METADATA VALIDATION
+        // ============================================================
+
         val ns = resource.metadata?.namespace ?: "default"
         val k8sName = resource.metadata?.name ?: "<no-name>"
 
@@ -59,7 +79,10 @@ class SessionReconciler(
         val spec = resource.spec
         log.info("Reconciling Session {}/{} spec={}", ns, k8sName, spec)
 
-        // --- 1) Basic validation of spec
+        // ============================================================
+        // SECTION 2: SPEC VALIDATION
+        // ============================================================
+
         if (spec == null) {
             return failStatus(resource, "spec is null on Session $ns/$k8sName")
         }
@@ -92,7 +115,10 @@ class SessionReconciler(
             nonNullSessionName, nonNullWorkspaceName, nonNullAppDefName, user
         )
 
-        // --- 2) Only one *active* Session per Workspace
+        // ============================================================
+        // SECTION 3: CONSTRAINT - ONE SESSION PER WORKSPACE
+        // ============================================================
+
         val otherActiveSessions = client.resources(Session::class.java)
             .inNamespace(ns)
             .list()
@@ -110,7 +136,10 @@ class SessionReconciler(
             )
         }
 
-        // --- 3) Optional: max sessions per user
+        // ============================================================
+        // SECTION 4: CONSTRAINT - MAX SESSIONS PER USER (OPTIONAL)
+        // ============================================================
+
         if (sessionsPerUser != null && sessionsPerUser > 0) {
             val allUserSessions = client.resources(Session::class.java)
                 .inNamespace(ns)
@@ -131,7 +160,10 @@ class SessionReconciler(
             }
         }
 
-        // --- 4) Load AppDefinition
+        // ============================================================
+        // SECTION 5: LOAD AND VALIDATE APPDEFINITION
+        // ============================================================
+
         val appDef = client.resources(AppDefinition::class.java)
             .inNamespace(ns)
             .withName(nonNullAppDefName)
@@ -158,14 +190,20 @@ class SessionReconciler(
         val downlinkLimit = appSpec.downlinkLimit
         val uplinkLimit = appSpec.uplinkLimit
 
-        // --- 5) Workspace existence
+        // ============================================================
+        // SECTION 6: LOAD AND VALIDATE WORKSPACE
+        // ============================================================
+
         val workspace = client.resources(Workspace::class.java)
             .inNamespace(ns)
             .withName(nonNullWorkspaceName)
             .get()
             ?: return failStatus(resource, "Workspace '$nonNullWorkspaceName' not found in '$ns'")
 
-        // --- 6) Workspace must have a storage PVC name
+        // ============================================================
+        // SECTION 7: WAIT FOR WORKSPACE PVC
+        // ============================================================
+
         val workspacePvcName = workspace.spec?.storage
         if (workspacePvcName.isNullOrBlank()) {
             val st = ensureStatus(resource)
@@ -186,7 +224,10 @@ class SessionReconciler(
 
         var metadataChanged = false
 
-        // --- 7) ownerRef
+        // ============================================================
+        // SECTION 8: SET OWNER REFERENCE
+        // ============================================================
+
         val existingRefs = (meta.ownerReferences ?: emptyList()).toMutableList()
         val newRefs = existingRefs
             .filterNot { it.controller == true }
@@ -195,7 +236,10 @@ class SessionReconciler(
         meta.ownerReferences = newRefs
         metadataChanged = true
 
-        // --- 8) Session and Workspace must agree on appDefinition
+        // ============================================================
+        // SECTION 9: VALIDATE APPDEFINITION CONSISTENCY
+        // ============================================================
+
         val wsAppDefName = workspace.spec?.appDefinition
         if (!wsAppDefName.isNullOrBlank() && wsAppDefName != nonNullAppDefName) {
             return failStatus(
@@ -204,7 +248,10 @@ class SessionReconciler(
             )
         }
 
-        // --- 9) labels
+        // ============================================================
+        // SECTION 10: ADD HENKAN LABELS
+        // ============================================================
+
         val labels = (meta.labels ?: emptyMap()).toMutableMap()
         fun putIfMissing(k: String, v: String?) {
             if (!v.isNullOrBlank() && !labels.containsKey(k)) {
@@ -218,7 +265,10 @@ class SessionReconciler(
         putIfMissing("app.henkan.io/henkanProjectName", Labeling.toLabelValue(workspace.spec?.label))
         meta.labels = labels
 
-        // --- 10) Build environment variables
+        // ============================================================
+        // SECTION 11: BUILD RESOURCE NAMES AND URLs
+        // ============================================================
+
         val sessionUid = resource.metadata?.uid
             ?: return failStatus(resource, "Session UID is missing")
 
@@ -228,6 +278,10 @@ class SessionReconciler(
 
         val sessionUrlForEnv = "${ingressScheme}://$ingressHost/$sessionUid/"
         val sessionUrlForStatus = "$ingressHost/$sessionUid/"
+
+        // ============================================================
+        // SECTION 12: BUILD ENVIRONMENT VARIABLES
+        // ============================================================
 
         val mergedEnv = buildEnvironmentVariables(
             appSpec = appSpec,
@@ -247,7 +301,10 @@ class SessionReconciler(
             ns = ns
         )
 
-        // --- 11) Resources from AppDefinition
+        // ============================================================
+        // SECTION 13: EXTRACT RESOURCE LIMITS FROM APPDEFINITION
+        // ============================================================
+
         val requestsCpu = appSpec.requestsCpu ?: "250m"
         val requestsMemory = appSpec.requestsMemory ?: "512Mi"
         val limitsCpu = appSpec.limitsCpu ?: requestsCpu
@@ -261,7 +318,10 @@ class SessionReconciler(
         val appLabel = Labeling.toLabelValue("${nonNullSessionName}-${sessionUid}")
             ?: "${nonNullSessionName}-${sessionUid}"
 
-        // --- 12) Check for ingress existence
+        // ============================================================
+        // SECTION 14: VERIFY SHARED INGRESS EXISTS
+        // ============================================================
+
         val ingressName = ingressManager.ingressNameForAppDef(appDef)
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
         val existingIngress = ingressClient.withName(ingressName).get()
@@ -271,7 +331,10 @@ class SessionReconciler(
 
 
 
-        // --- 13) Create all resources
+        // ============================================================
+        // SECTION 15: CREATE ALL KUBERNETES RESOURCES
+        // ============================================================
+
         val sessionProxyCm = resourceManager.ensureSessionProxyConfigMap(
             namespace = ns,
             user = user,
@@ -342,7 +405,10 @@ class SessionReconciler(
             port = appPort
         )
 
-        // --- 14) Status on success
+        // ============================================================
+        // SECTION 16: UPDATE STATUS TO HANDLED
+        // ============================================================
+
         val status = ensureStatus(resource)
         status.operatorStatus = "HANDLED"
         status.operatorMessage = "Session is running"
