@@ -27,6 +27,19 @@ class SessionTimeoutReaper(
         )
     }
 
+    fun stop() {
+        log.info("Stopping SessionTimeoutReaper")
+        scheduler.shutdown()
+        try {
+            if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow()
+            }
+        } catch (e: InterruptedException) {
+            scheduler.shutdownNow()
+            Thread.currentThread().interrupt()
+        }
+    }
+
     private fun runOnceSafe() {
         try {
             runOnce()
