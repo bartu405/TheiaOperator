@@ -9,12 +9,8 @@ object SessionNaming {
     fun sessionEmailCmName(user: String, appDefName: String, sessionUid: String): String =
         "session-email-${safeNamePart(user, 17)}-${safeNamePart(appDefName, 11)}-${shortUid(sessionUid)}"
 
-    fun sessionResourceBaseName(user: String, appDefName: String, sessionUid: String): String {
-        val uidSuffix = sessionUid.replace("-", "").takeLast(12)  // ✅ Always 12 chars
-        val safeUser = safeNamePart(user, 17)
-        val safeAppDef = safeNamePart(appDefName, 17)
-        return "session-${safeUser}-${safeAppDef}-${uidSuffix}"
-    }
+    fun sessionResourceBaseName(user: String, appDefName: String, sessionUid: String): String =
+        "session-${safeNamePart(user, 17)}-${safeNamePart(appDefName, 17)}-${shortUid(sessionUid)}"
 
     private fun safeNamePart(s: String, max: Int): String =
         s.lowercase()
