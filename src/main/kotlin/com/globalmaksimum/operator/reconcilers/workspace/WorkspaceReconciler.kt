@@ -23,8 +23,8 @@ import java.time.Duration
  * Responsibilities:
  * 1. Validate workspace spec (name, user, appDefinition are required)
  * 2. Add Henkan labels for UI integration
- * 3. Link workspace to AppDefinition via owner reference (enables cascading deletion)
- * 4. Create and manage PersistentVolumeClaim (PVC) for workspace storage
+ * 3. Link workspace to AppDefinition via owner reference
+ * 4. Create and manage PVC for workspace storage
  * 5. Update workspace status throughout the process
  *
  * Status Lifecycle:
@@ -59,7 +59,6 @@ class WorkspaceReconciler(
         // SECTION 1: INITIALIZATION & LOGGING
         // ============================================================
 
-        // Extract basic metadata for logging and identification
         val name = resource.metadata?.name ?: "<no-name>"
         val ns = resource.metadata?.namespace ?: "<no-namespace>"
         log.info("Reconciling Workspace {}/{}", ns, name)
@@ -122,6 +121,7 @@ class WorkspaceReconciler(
         // ============================================================
 
         // Track whether we need to patch metadata/spec or just status
+
         var metadataChanged = false
         var specChanged = false
 
@@ -163,7 +163,6 @@ class WorkspaceReconciler(
             "Workspace {}/{} Henkan labels: {}",
             ns, name, labels.filterKeys { it.startsWith("app.henkan.io/") }
         )
-
 
         // ============================================================
         // SECTION 6: LINK TO APPDEFINITION (OWNER REFERENCE)

@@ -14,16 +14,10 @@ import org.slf4j.LoggerFactory
  * Reconciler for AppDefinition custom resources.
  *
  * Responsibilities:
- * 1. Validate AppDefinition spec (required fields: name, image, port, uid, ingressname)
+ * 1. Validate AppDefinition spec
  * 2. Locate the shared Ingress resource (created by Helm, not by this operator)
- * 3. Add non-controller owner reference to the Ingress (informational link)
+ * 3. Add non-controller owner reference to the Ingress
  * 4. Mark AppDefinition as HANDLED once Ingress is found
- *
- * Key Design (Henkan/Theia-Cloud Style):
- * - Ingress is NOT created by this operator
- * - Ingress is created/managed by Helm charts or manually
- * - This reconciler only adds an owner reference to track the relationship
- * - Owner reference is NON-CONTROLLER (controller=false)
  *
  * Status Lifecycle:
  * - NEW → HANDLING (waiting for Ingress) → HANDLED (success)
