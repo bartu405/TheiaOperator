@@ -11,6 +11,28 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaim
 import io.fabric8.kubernetes.client.KubernetesClient
 import org.slf4j.LoggerFactory
 
+
+/**
+ * Helper class for managing Workspace-related Kubernetes resources.
+ *
+ * Primary responsibility: PersistentVolumeClaim (PVC) lifecycle management
+ *
+ * PVC Lifecycle Handled:
+ * 1. Calculate PVC name from workspace metadata
+ * 2. Set spec.storage field (in-memory only)
+ * 3. Check if PVC exists and its status (Pending, Bound, Deleting)
+ * 4. Create PVC if missing (from Velocity template)
+ * 5. Update owner references and labels on existing PVCs
+ * 6. Wait for PVC to be Bound before marking workspace as ready
+ *
+ * PVC States:
+ * - "Deleting": PVC has deletionTimestamp (being terminated)
+ * - "Pending": PVC exists but not yet Bound to a PersistentVolume
+ * - "Bound": PVC is successfully attached to storage (ready to use)
+ * - "Exists": Our internal state meaning PVC is Bound and ready
+ * - "ERROR": Something went wrong (metadata missing, naming failed, etc.)
+ */
+
 class WorkspaceResources(
     private val client: KubernetesClient,
     private val config: OperatorConfig,
@@ -22,24 +44,27 @@ class WorkspaceResources(
         val storageUpdated: Boolean
     )
 
-    /**
-     * Ensure a PVC exists for this workspace.
-     * If spec.storage is missing, generate a name and set it on the in-memory Workspace object.
-     *
-     * IMPORTANT: does NOT call client.edit() on Workspace to avoid 409 conflicts.
-     */
     fun ensurePvc(ws: Workspace): EnsurePvcResult {
+
+        // ============================================================
+        // SECTION 1: VALIDATE WORKSPACE METADATA
+        // ============================================================
+
+        // Check that workspace has required metadata before proceeding
         val wsMeta = ws.metadata ?: return EnsurePvcResult(
             volumeStatus = VolumeStatus(status = "ERROR", message = "Workspace metadata is missing"),
             storageUpdated = false
         )
-
         val wsName = wsMeta.name ?: return EnsurePvcResult(
             volumeStatus = VolumeStatus(status = "ERROR", message = "Workspace metadata.name is missing"),
             storageUpdated = false
         )
 
         val ns = wsMeta.namespace ?: "default"
+
+        // ============================================================
+        // SECTION 2: CALCULATE PVC NAME
+        // ============================================================
 
         val pvcName = try {
             WorkspaceNaming.workspaceStorageName(ws)
@@ -50,10 +75,18 @@ class WorkspaceResources(
             )
         }
 
+        // ============================================================
+        // SECTION 3: SET SPEC.STORAGE (IN-MEMORY)
+        // ============================================================
+
         val storageUpdated = (ws.spec?.storage != pvcName)
         ws.spec!!.storage = pvcName
 
         log.info("Using PVC name '{}' for workspace {}", pvcName, wsName)
+
+        // ============================================================
+        // SECTION 4: CHECK IF PVC IS TERMINATING
+        // ============================================================
 
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
@@ -66,6 +99,10 @@ class WorkspaceResources(
                 storageUpdated = storageUpdated
             )
         }
+
+        // ============================================================
+        // SECTION 5: CHECK IF PVC IS BOUND
+        // ============================================================
 
         // If PVC exists but is not Bound yet, keep reconciling
         if (existing != null) {
@@ -82,9 +119,16 @@ class WorkspaceResources(
             }
         }
 
+        // ============================================================
+        // SECTION 6: GET STORAGE CONFIGURATION
+        // ============================================================
+
         val size = config.requestedStorage?.takeIf { it.isNotBlank() } ?: "5Gi"
         val storageClassName = config.storageClassName?.takeIf { it.isNotBlank() }
 
+        // ============================================================
+        // SECTION 7: UPDATE EXISTING PVC (OWNER REFS & LABELS)
+        // ============================================================
 
         if (existing != null) {
             // Update owner refs on PVC
@@ -124,6 +168,10 @@ class WorkspaceResources(
             )
         }
 
+        // ============================================================
+        // SECTION 8: CREATE NEW PVC
+        // ============================================================
+
         val labels = mutableMapOf(
             "theia-cloud.io/workspace-name" to wsName
         )
@@ -152,6 +200,7 @@ class WorkspaceResources(
         )
     }
 
+    // Renders a PVC YAML file from a Velocity template.
     private fun renderPvcYaml(
         ns: String,
         pvcName: String,
