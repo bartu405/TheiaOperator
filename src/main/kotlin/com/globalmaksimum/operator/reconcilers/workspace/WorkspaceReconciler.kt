@@ -50,9 +50,8 @@ class WorkspaceReconciler(
                 // continue reconciliation normally
             }
             "ERROR" -> {
-                // Optional: allow retry (recommended), or noUpdate if you want "manual intervention"
+                // allow retry (recommended)
                 // I'd recommend continuing so it can self-heal:
-                // (do nothing here and continue)
             }
         }
 
@@ -85,8 +84,6 @@ class WorkspaceReconciler(
             status.error = "spec.appDefinition must be set"
             return UpdateControl.patchStatus(resource)
         }
-
-
 
         var metadataChanged = false
         var specChanged = false
