@@ -1,4 +1,5 @@
 # File: theia-oauth2-proxy.config.yaml.vm
+# Only thing theia string replaces are redirect_url and upstreams
 apiVersion: v1
 kind: ConfigMap
 metadata:

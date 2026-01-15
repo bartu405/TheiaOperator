@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory
  * - "Pending": PVC exists but not yet Bound to a PersistentVolume
  * - "Bound": PVC is successfully attached to storage (ready to use)
  * - "Exists": Our internal state meaning PVC is Bound and ready
- * - "ERROR": Something went wrong (metadata missing, naming failed, etc.)
+ * - "ERROR": Something went wrong
  */
 
 class WorkspaceResources(
@@ -91,7 +91,7 @@ class WorkspaceResources(
         val pvcClient = client.persistentVolumeClaims().inNamespace(ns)
         val existing = pvcClient.withName(pvcName).get()
 
-        // If it's terminating, do NOT report success. Keep reconciling until it's gone.
+        // If it's terminating, do NOT report success. Keep reconciling until it's gone
         if (existing != null && existing.metadata?.deletionTimestamp != null) {
             log.warn("PVC {}/{} is terminating; waiting before recreating", ns, pvcName)
             return EnsurePvcResult(
@@ -123,7 +123,7 @@ class WorkspaceResources(
         // SECTION 6: GET STORAGE CONFIGURATION
         // ============================================================
 
-        val size = config.requestedStorage?.takeIf { it.isNotBlank() } ?: "5Gi"
+        val size = config.requestedStorage?.takeIf { it.isNotBlank() } ?: "250Mi"
         val storageClassName = config.storageClassName?.takeIf { it.isNotBlank() }
 
         // ============================================================
@@ -199,7 +199,7 @@ class WorkspaceResources(
             storageUpdated = storageUpdated
         )
     }
-    
+
     private fun renderPvcYaml(
         ns: String,
         pvcName: String,

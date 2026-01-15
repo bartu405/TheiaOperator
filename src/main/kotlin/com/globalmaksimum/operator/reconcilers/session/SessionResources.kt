@@ -25,14 +25,6 @@ import java.io.ByteArrayInputStream
  * - All resources have owner references (Session owns them for cascading deletion)
  * - ConfigMaps preserve labels set by Henkan-server (only add if missing)
  * - OAuth2 proxy runs as sidecar in same pod as IDE/application
- *
- * Resource Ownership:
- * Session → Deployment → Pod
- * Session → Service
- * Session → ConfigMap (proxy config)
- * Session → ConfigMap (emails)
- *
- * When Session is deleted, all owned resources are automatically deleted (garbage collection).
  */
 class SessionResources(
     private val client: KubernetesClient,
