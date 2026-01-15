@@ -33,17 +33,17 @@ class AppDefinitionReconciler(
             return UpdateControl.patchStatus(resource)
         }
 
-        // Required fields validation
-        val specName = spec.name
-        val image = spec.image
-        val port = spec.port
-        val uid = spec.uid
-
-        if (specName.isNullOrBlank() || image.isNullOrBlank() || port == null || uid == null) {
+        // Validate required fields
+        if (spec.name.isNullOrBlank() ||
+            spec.image.isNullOrBlank() ||
+            spec.port == null ||
+            spec.uid == null ||
+            spec.ingressname.isNullOrBlank()) {
             status.operatorStatus = "ERROR"
-            status.operatorMessage = "Missing required fields: name, image, port, or uid"
+            status.operatorMessage = "Missing required fields"
             return UpdateControl.patchStatus(resource)
         }
+
 
         val ingressName = spec.ingressname
 
@@ -52,7 +52,11 @@ class AppDefinitionReconciler(
 
         if (existing == null) {
             // Henkan mode: ingress is created by Helm / manually, not by operator
-            log.info("Ingress '{}' not found for AppDefinition {}/{}. Create it manually (Henkan-like).", ingressName, ns, name)
+            log.warn("Ingress '{}' not found for AppDefinition {}/{}. Waiting for Helm to create it.",
+                ingressName, ns, name)
+            status.operatorStatus = "HANDLING"
+            status.operatorMessage = "Waiting for Ingress '$ingressName' to be created"
+            return UpdateControl.patchStatus(resource)
         } else {
             // IMPORTANT (Henkan/Theia-Cloud style):
             // - treat the Ingress as Helm-managed / shared
