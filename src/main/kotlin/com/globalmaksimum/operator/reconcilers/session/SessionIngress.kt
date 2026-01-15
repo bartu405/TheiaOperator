@@ -12,7 +12,17 @@ import org.slf4j.LoggerFactory
 
 /**
  * Manages shared Ingress resources for Sessions.
- * Handles adding/removing session paths to/from a shared Ingress.
+ *
+ * Responsibilities:
+ * 1. Add session-specific paths to a shared Ingress (created by Helm/manually)
+ * 2. Remove session paths from Ingress during cleanup
+ * 3. Preserve existing Ingress rules (avoid overwriting Helm-managed configuration)
+ *
+ * Key Design (Henkan/Theia-Cloud Style):
+ * - One shared Ingress per AppDefinition (e.g., "theia-ingress")
+ * - Multiple Sessions add paths to the same Ingress
+ * - Ingress is created/managed by Helm, this class only modifies paths
+ * - Each Session gets a unique path based on its UID
  */
 class SessionIngress(
     private val client: KubernetesClient,
@@ -22,16 +32,12 @@ class SessionIngress(
 
     private val ingressHost: String = (config.instancesHost ?: "theia.localtest.me").trim()
 
-    /**
-     * Determines the ingress name from the AppDefinition.
-     */
+    // Gets the ingress name from the AppDefinition.
     fun ingressNameForAppDef(appDef: AppDefinition): String =
         appDef.spec?.ingressname
             ?: "theia-${appDef.metadata?.name ?: "unknown-app"}-ingress"
 
-    /**
-     * Ensures the session has a path in the shared Ingress.
-     */
+    // Ensures the session has a path in the shared Ingress.
     fun ensureSharedIngressForSession(
         session: Session,
         serviceName: String,
@@ -40,12 +46,20 @@ class SessionIngress(
         port: Int
     ) {
         val ns = session.metadata?.namespace ?: "default"
-        val host = sessionHost(session)
+        val host = ingressHost
         val path = sessionPath(session)
+
+        // ============================================================
+        // SECTION 1: LOAD SHARED INGRESS
+        // ============================================================
 
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
         val existing = ingressClient.withName(ingressName).get()
             ?: throw IllegalStateException("Shared Ingress '$ingressName' is missing")
+
+        // ============================================================
+        // SECTION 2: FIND OR CREATE INGRESS RULE FOR HOST
+        // ============================================================
 
         val ingress = IngressBuilder(existing).build()
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
@@ -53,8 +67,8 @@ class SessionIngress(
         // Prefer a rule with http; do NOT hijack a host-only rule
         var ruleIndex = rules.indexOfFirst { it.host == host && it.http != null }
 
+        // CASE 1: NO HTTP RULE FOR THIS HOST YET
         if (ruleIndex == -1) {
-            // No http rule yet -> add a new one, keep existing host-only rule untouched
             val newRule = IngressRuleBuilder()
                 .withHost(host)
                 .withNewHttp()
@@ -71,11 +85,15 @@ class SessionIngress(
                 .endHttp()
                 .build()
             rules.add(newRule)
-        } else {
+        }
+        // CASE 2: HTTP RULE EXISTS FOR THIS HOST
+        else {
             val rule = rules[ruleIndex]
             val paths = rule.http?.paths?.toMutableList() ?: mutableListOf()
 
             val existingPathIndex = paths.indexOfFirst { it.path == path }
+
+            // PATH DOESN'T EXIST YET
             if (existingPathIndex == -1) {
                 val newPath = HTTPIngressPathBuilder()
                     .withPath(path)
@@ -88,19 +106,26 @@ class SessionIngress(
                     .endBackend()
                     .build()
                 paths.add(newPath)
-            } else {
+            }
+            // PATH ALREADY EXISTS
+            else {
                 val existingPath = paths[existingPathIndex]
                 existingPath.backend?.service?.name = serviceName
                 existingPath.backend?.service?.port?.number = port
                 existingPath.backend?.service?.port?.name = null
             }
 
+            // Rebuild the rule with updated paths
             rules[ruleIndex] = IngressRuleBuilder(rule)
                 .editOrNewHttp()
                 .withPaths(paths)
                 .endHttp()
                 .build()
         }
+
+        // ============================================================
+        // SECTION 3: UPDATE INGRESS
+        // ============================================================
 
         ingress.spec?.rules = rules
         ingressClient.resource(ingress).createOrReplace()
@@ -111,12 +136,14 @@ class SessionIngress(
         )
     }
 
-    /**
-     * Removes the session's path from the shared Ingress during cleanup.
-     */
+    // Removes the session's path from the shared Ingress during cleanup.
     fun removeSessionFromIngress(session: Session) {
         val ns = session.metadata?.namespace ?: "default"
         val name = session.metadata?.name ?: "<no-name>"
+
+        // ============================================================
+        // SECTION 1: DETERMINE INGRESS NAME
+        // ============================================================
 
         val appDefName = session.spec?.appDefinition
         if (appDefName.isNullOrBlank()) {
@@ -141,13 +168,17 @@ class SessionIngress(
         }
 
         val ingressName = ingressNameForAppDef(appDef)
-        val host = sessionHost(session)
+        val host = ingressHost
         val path = sessionPath(session)
 
         log.info(
             "Running cleanup for Session {}/{}: removing path {} on host {} from shared Ingress '{}'",
             ns, name, path, host, ingressName
         )
+
+        // ============================================================
+        // SECTION 2: LOAD SHARED INGRESS
+        // ============================================================
 
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
         val ingress = ingressClient.withName(ingressName).get()
@@ -159,6 +190,10 @@ class SessionIngress(
             )
             return
         }
+
+        // ============================================================
+        // SECTION 3: REMOVE SESSION PATH FROM RULES
+        // ============================================================
 
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
         var changed = false
@@ -201,6 +236,10 @@ class SessionIngress(
             return
         }
 
+        // ============================================================
+        // SECTION 4: UPDATE INGRESS
+        // ============================================================
+
         val updatedIngress = IngressBuilder(ingress)
             .editOrNewSpec()
             .withRules(newRules)
@@ -215,15 +254,7 @@ class SessionIngress(
         )
     }
 
-    /**
-     * Gets the host for a session (currently uses the configured ingress host).
-     */
-    private fun sessionHost(@Suppress("UNUSED_PARAMETER") session: Session): String =
-        ingressHost
-
-    /**
-     * Gets the path pattern for a session based on its UID.
-     */
+    // Gets the path pattern for a session based on its UID
     private fun sessionPath(session: Session): String =
         "/${session.metadata?.uid}(/|$)(.*)"
 

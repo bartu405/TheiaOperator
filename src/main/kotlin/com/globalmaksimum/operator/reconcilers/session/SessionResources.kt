@@ -14,7 +14,25 @@ import java.io.ByteArrayInputStream
 
 /**
  * Manages the creation and updates of Kubernetes resources for Sessions.
- * Handles Deployments, Services, and ConfigMaps.
+ *
+ * Responsibilities:
+ * 1. Create/update Deployments (main container + OAuth2 proxy sidecar)
+ * 2. Create/update Services (ClusterIP for internal routing)
+ * 3. Create/update ConfigMaps (OAuth2 proxy config, authenticated emails list)
+ *
+ * Key Design:
+ * - Uses Velocity templates for all resource YAML generation
+ * - All resources have owner references (Session owns them for cascading deletion)
+ * - ConfigMaps preserve labels set by Henkan-server (only add if missing)
+ * - OAuth2 proxy runs as sidecar in same pod as IDE/application
+ *
+ * Resource Ownership:
+ * Session → Deployment → Pod
+ * Session → Service
+ * Session → ConfigMap (proxy config)
+ * Session → ConfigMap (emails)
+ *
+ * When Session is deleted, all owned resources are automatically deleted (garbage collection).
  */
 class SessionResources(
     private val client: KubernetesClient,
@@ -58,6 +76,10 @@ class SessionResources(
             deploymentName, namespace, pvcName
         )
 
+        // ============================================================
+        // SECTION 1: RENDER DEPLOYMENT YAML FROM TEMPLATE
+        // ============================================================
+
         val yaml = TemplateRenderer.render(
             "templates/deployment.yaml.vm",
             mapOf(
@@ -94,8 +116,14 @@ class SessionResources(
             )
         )
 
+        // ============================================================
+        // SECTION 2: LOAD AND APPLY
+        // ============================================================
+
+        // Parse YAML into Kubernetes resources
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
+            // Set Session as owner
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
@@ -111,6 +139,11 @@ class SessionResources(
         appDefinitionName: String,
         user: String,
     ) {
+
+        // ============================================================
+        // SECTION 1: RENDER SERVICE YAML FROM TEMPLATE
+        // ============================================================
+
         val yaml = TemplateRenderer.render(
             "templates/service.yaml.vm",
             mapOf(
@@ -126,8 +159,14 @@ class SessionResources(
             )
         )
 
+        // ============================================================
+        // SECTION 2: LOAD AND APPLY
+        // ============================================================
+
+        // Parse YAML into Kubernetes resources
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
+            // Set Session as owner for cascading deletion
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
             client.resource(r).inNamespace(namespace).createOrReplace()
         }
@@ -144,7 +183,11 @@ class SessionResources(
         port: Int,
         owner: Session
     ): String {
-        // 1. Calculate the values needed for the template
+
+        // ============================================================
+        // SECTION 1: CALCULATE OAUTH2 CONFIGURATION VALUES
+        // ============================================================
+
         val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
         val host = config.instancesHost ?: "theia.localtest.me"
         val scheme = config.ingressScheme.ifBlank { "http" }
@@ -155,7 +198,9 @@ class SessionResources(
 
         val cmName = SessionNaming.sessionProxyCmName(user, appDefName, sessionUid)
 
-        // 2. Check if ConfigMap already exists and get existing labels
+        // ============================================================
+        // SECTION 2: PRESERVE EXISTING LABELS
+        // ============================================================
         val existingCm = client.configMaps()
             .inNamespace(namespace)
             .withName(cmName)
@@ -163,7 +208,7 @@ class SessionResources(
 
         val labels = existingCm?.metadata?.labels?.toMutableMap() ?: mutableMapOf()
 
-        // 3. Add labels only if missing (don't override henkan-server's labels)
+        // Add labels only if missing (don't override henkan-server's labels)
         fun putIfMissing(k: String, v: String?) {
             if (!v.isNullOrBlank() && !labels.containsKey(k)) {
                 labels[k] = v
@@ -177,7 +222,10 @@ class SessionResources(
         putIfMissing("theia-cloud.io/template-purpose", "proxy")
         putIfMissing("theia-cloud.io/user", user)
 
-        // 4. Prepare the model for Velocity
+        // ============================================================
+        // SECTION 3: RENDER CONFIGMAP YAML FROM TEMPLATE
+        // ============================================================
+
         val model = mapOf(
             "configMapName" to cmName,
             "namespace" to namespace,
@@ -188,13 +236,15 @@ class SessionResources(
             "cookieDomain" to host,
         )
 
-        // 5. Render the YAML from the template
         val yaml = TemplateRenderer.render(
             "templates/oauth2-proxy-config.yaml.vm",
             model
         )
 
-        // 6. Load and apply with merged labels
+        // ============================================================
+        // SECTION 4: LOAD AND APPLY
+        // ============================================================
+
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
@@ -214,9 +264,17 @@ class SessionResources(
         sessionUid: String,
         owner: Session
     ): String {
+
+        // ============================================================
+        // SECTION 1: CALCULATE CONFIGMAP NAME
+        // ============================================================
+
         val name = SessionNaming.sessionEmailCmName(user, appDefName, sessionUid)
 
-        // Check if ConfigMap already exists and get existing labels
+        // ============================================================
+        // SECTION 2: PRESERVE EXISTING LABELS
+        // ============================================================
+
         val existingCm = client.configMaps()
             .inNamespace(namespace)
             .withName(name)
@@ -224,7 +282,7 @@ class SessionResources(
 
         val labels = existingCm?.metadata?.labels?.toMutableMap() ?: mutableMapOf()
 
-        // Add labels only if missing
+        // Add labels only if missing (don't override henkan-server's labels)
         fun putIfMissing(k: String, v: String?) {
             if (!v.isNullOrBlank() && !labels.containsKey(k)) {
                 labels[k] = v
@@ -238,6 +296,10 @@ class SessionResources(
         putIfMissing("theia-cloud.io/user", user)
         putIfMissing("theia-cloud.io/template-purpose", "emails")
 
+        // ============================================================
+        // SECTION 3: BUILD CONFIGMAP
+        // ============================================================
+
         // Store username (e.g., "bartu") not email
         val cm = ConfigMapBuilder()
             .withNewMetadata()
@@ -248,6 +310,10 @@ class SessionResources(
             .endMetadata()
             .addToData("authenticated-emails-list", user)
             .build()
+
+        // ============================================================
+        // SECTION 4: APPLY CONFIGMAP
+        // ============================================================
 
         client.configMaps().inNamespace(namespace).resource(cm).createOrReplace()
         return name
