@@ -329,8 +329,6 @@ class SessionReconciler(
             return failStatus(resource, "Shared Ingress '$ingressName' is missing. Create it first.")
         }
 
-
-
         // ============================================================
         // SECTION 15: CREATE ALL KUBERNETES RESOURCES
         // ============================================================
@@ -505,6 +503,7 @@ class SessionReconciler(
         return mergedEnv
     }
 
+
     private fun failStatus(resource: Session, msg: String): UpdateControl<Session> {
         val status = ensureStatus(resource)
         status.operatorStatus = "ERROR"
@@ -513,6 +512,7 @@ class SessionReconciler(
         status.url = null
         return UpdateControl.patchStatus(resource)
     }
+
 
     private fun ensureStatus(resource: Session): SessionStatus {
         if (resource.status == null) {

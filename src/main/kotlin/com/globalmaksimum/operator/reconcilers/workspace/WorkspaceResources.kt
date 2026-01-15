@@ -199,8 +199,7 @@ class WorkspaceResources(
             storageUpdated = storageUpdated
         )
     }
-
-    // Renders a PVC YAML file from a Velocity template.
+    
     private fun renderPvcYaml(
         ns: String,
         pvcName: String,

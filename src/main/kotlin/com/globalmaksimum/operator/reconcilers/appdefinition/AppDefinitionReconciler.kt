@@ -33,24 +33,20 @@ class AppDefinitionReconciler(
 
     override fun reconcile(resource: AppDefinition, context: Context<AppDefinition>): UpdateControl<AppDefinition> {
 
-        // ============================================================
-        // SECTION 1: INITIALIZATION & LOGGING
-        // ============================================================
-
         val ns = resource.metadata?.namespace ?: "default"
         val name = resource.metadata?.name ?: "<no-name>"
 
         log.info("Reconciling AppDefinition {}/{}", ns, name)
 
         // ============================================================
-        // SECTION 2: ENSURE STATUS EXISTS
+        // SECTION 1: ENSURE STATUS EXISTS
         // ============================================================
 
         if (resource.status == null) resource.status = AppDefinitionStatus()
         val status = resource.status!!
 
         // ============================================================
-        // SECTION 3: SPEC VALIDATION
+        // SECTION 2: SPEC VALIDATION
         // ============================================================
 
         val spec = resource.spec
@@ -73,7 +69,7 @@ class AppDefinitionReconciler(
 
 
         // ============================================================
-        // SECTION 4: LOCATE SHARED INGRESS
+        // SECTION 3: LOCATE AND ADD OWNER REFERENCE TO SHARED INGRESS
         // ============================================================
 
         val ingressName = spec.ingressname
@@ -81,9 +77,6 @@ class AppDefinitionReconciler(
         val ingressClient = client.network().v1().ingresses().inNamespace(ns)
         val existing = ingressClient.withName(ingressName).get()
 
-        // ============================================================
-        // SECTION 5: HANDLE MISSING INGRESS
-        // ============================================================
         if (existing == null) {
             // Henkan mode: ingress is created by Helm / manually, not by operator
             log.warn("Ingress '{}' not found for AppDefinition {}/{}. Waiting for Helm to create it.",
@@ -92,10 +85,6 @@ class AppDefinitionReconciler(
             status.operatorMessage = "Waiting for Ingress '$ingressName' to be created"
             return UpdateControl.patchStatus(resource)
         }
-
-        // ============================================================
-        // SECTION 6: ADD OWNER REFERENCE TO INGRESS
-        // ============================================================
         else {
             // IMPORTANT (Henkan/Theia-Cloud style):
             // - treat the Ingress as Helm-managed / shared
@@ -122,7 +111,7 @@ class AppDefinitionReconciler(
         }
 
         // ============================================================
-        // SECTION 7: MARK AS HANDLED
+        // SECTION 4: MARK AS HANDLED
         // ============================================================
 
         status.operatorStatus = "HANDLED"

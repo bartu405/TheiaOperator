@@ -55,15 +55,14 @@ class WorkspaceReconciler(
         context: Context<Workspace>
     ): UpdateControl<Workspace> {
 
-        // ============================================================
-        // SECTION 1: INITIALIZATION & LOGGING
-        // ============================================================
-
         val name = resource.metadata?.name ?: "<no-name>"
         val ns = resource.metadata?.namespace ?: "<no-namespace>"
         log.info("Reconciling Workspace {}/{}", ns, name)
 
-        // Ensure status exists so we can update it safely
+        // ============================================================
+        // SECTION 1: ENUSRE STATUS EXISTS
+        // ============================================================
+
         if (resource.status == null) resource.status = WorkspaceStatus()
         val status = resource.status!!
 
@@ -121,7 +120,6 @@ class WorkspaceReconciler(
         // ============================================================
 
         // Track whether we need to patch metadata/spec or just status
-
         var metadataChanged = false
         var specChanged = false
 
