@@ -131,35 +131,56 @@ class WorkspaceResources(
         // ============================================================
 
         if (existing != null) {
-            // Update owner refs on PVC
-            val wsUid = ws.metadata?.uid
-            if (wsUid != null) {
-                val currentRefs = existing.metadata.ownerReferences ?: emptyList()
+            var pvcChanged = false
 
+            // ============================================================
+            // UPDATE OWNER REFERENCES
+            // ============================================================
+
+            val currentRefs = existing.metadata.ownerReferences ?: emptyList()
+
+            // Check if this Workspace is already the controller owner
+            val hasCorrectOwner = currentRefs.any { ref ->
+                ref.controller == true &&
+                        ref.kind == "Workspace" &&
+                        ref.name == ws.metadata?.name &&
+                        ref.uid == ws.metadata?.uid
+            }
+
+            if (!hasCorrectOwner) {
+                // Remove old controller owners
                 val cleanedRefs = currentRefs.filterNot { ref ->
                     ref.controller == true &&
-                            ref.kind == "Workspace" &&
-                            ref.name == ws.metadata?.name
+                            ref.kind == "Workspace"
                 }
-
                 existing.metadata.ownerReferences = cleanedRefs + OwnerRefs.controllerOwnerRef(ws)
+                pvcChanged = true
             }
+
+            // ============================================================
+            // UPDATE LABELS
+            // ============================================================
 
             val pvcLabels = (existing.metadata.labels ?: emptyMap()).toMutableMap()
 
             if (!pvcLabels.containsKey("theia-cloud.io/workspace-name")) {
                 pvcLabels["theia-cloud.io/workspace-name"] = wsMeta.name!!
                 existing.metadata.labels = pvcLabels
-                pvcClient.resource(existing).patch()
+                pvcChanged = true
             }
 
+            // ============================================================
+            // PATCH ONLY IF CHANGED
+            // ============================================================
 
-            existing.metadata.labels = pvcLabels
-            pvcClient.resource(existing).patch()
+            if (pvcChanged) {
+                pvcClient.resource(existing).patch()
+                log.info("Updated PVC {}/{} owner references and labels", ns, pvcName)
+            }
 
             log.info(
-                "PVC {} already exists in namespace {} with Henkan labels: {}",
-                pvcName, ns, pvcLabels.filterKeys { it.startsWith("app.henkan.io/") }
+                "PVC {} already exists in namespace {} with labels: {}",
+                pvcName, ns, pvcLabels.filterKeys { it.startsWith("app.henkan.io/") || it.startsWith("theia-cloud.io/") }
             )
 
             return EnsurePvcResult(
