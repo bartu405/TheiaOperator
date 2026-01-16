@@ -60,7 +60,7 @@ spec:
 
         # --- oauth2-proxy sidecar (fronts Theia) ---
         - name: oauth2-proxy
-          image: ${oauth2ProxyImage}
+          image: ${oauth2ProxyVersion}
           imagePullPolicy: IfNotPresent
           args:
             - --config=/etc/oauth2-proxy.cfg

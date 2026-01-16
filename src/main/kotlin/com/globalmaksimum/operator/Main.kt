@@ -13,8 +13,13 @@ fun main(args: Array<String>) {
 
     val log = LoggerFactory.getLogger("Main")
 
+    // Get the OperatorConfig data class object with the arg values from CLI
     val config = CliConfigParser.parse(args)
 
+    // Create a client to talk to kubernetes
+    // The client automatically looks for your kubeconfig file at: ~/.kube/config
+    // Development (your laptop) → Uses ~/.kube/config
+    // Production (Henkan's Kubernetes) → Uses in-cluster service account
     val client = KubernetesClientBuilder().build()
 
     val operator = Operator { overrider ->
@@ -23,6 +28,7 @@ fun main(args: Array<String>) {
             .withUseSSAToPatchPrimaryResource(false)
     }
 
+    // Pass the OperatorConfig object to Workspace and Session Reconcilers, because they use the values
     operator.register(AppDefinitionReconciler(client))
     operator.register(WorkspaceReconciler(client, config))
     operator.register(SessionReconciler(client, config))

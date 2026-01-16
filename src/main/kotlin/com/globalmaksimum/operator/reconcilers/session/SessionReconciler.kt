@@ -54,6 +54,7 @@ class SessionReconciler(
     private val resourceManager = SessionResources(client, config)
     private val ingressManager = SessionIngress(client, config)
 
+    // Store config values from the OpeartorConfig object that is created as properties for easy access
     private val sessionsPerUser: Int? = config.sessionsPerUser
     private val keycloakUrl: String? = config.keycloakUrl
     private val keycloakRealm: String? = config.keycloakRealm

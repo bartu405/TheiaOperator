@@ -1,6 +1,7 @@
 // File: CliConfigParser.kt
 package com.globalmaksimum.operator.config
 
+// You pass the CLI arguments to this function, and this function maps them to the data class OperatorConfig an returns it
 object CliConfigParser {
     fun parse(args: Array<String>): OperatorConfig {
 
@@ -21,7 +22,7 @@ object CliConfigParser {
             appId = get("--appId")?.trim(),
             ingressScheme = (get("--ingressScheme") ?: "https").trim(),
             instancesHost = (get("--instancesHost") ?: "theia.localtest.me").trim(),
-            oAuth2ProxyImage = (get("--oAuth2ProxyImage") ?: "quay.io/oauth2-proxy/oauth2-proxy:v7.5.1").trim(),
+            oAuth2ProxyVersion = (get("--oAuth2ProxyVersion") ?: "quay.io/oauth2-proxy/oauth2-proxy:v7.5.1").trim(),
             storageClassName = get("--storageClassName")?.trim(),
             requestedStorage = get("--requestedStorage")?.trim(),
             sessionsPerUser = get("--sessionsPerUser")?.toIntOrNull(),

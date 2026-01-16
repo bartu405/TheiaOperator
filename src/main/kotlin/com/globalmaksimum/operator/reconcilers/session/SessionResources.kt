@@ -95,7 +95,7 @@ class SessionResources(
                 "mountPath" to mountPath,
                 "fsGroupUid" to fsGroupUid,
                 "runAsUid" to runAsUid,
-                "oauth2ProxyImage" to config.oAuth2ProxyImage,
+                "oauth2ProxyVersion" to config.oAuth2ProxyVersion,
                 "oauth2ProxyConfigMapName" to oauth2ProxyConfigMapName,
                 "oauth2TemplatesConfigMapName" to "oauth2-templates",
                 "oauth2EmailsConfigMapName" to oauth2EmailsConfigMapName,

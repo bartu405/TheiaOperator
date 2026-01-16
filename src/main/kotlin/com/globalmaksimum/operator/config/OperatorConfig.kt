@@ -12,7 +12,7 @@ data class OperatorConfig(
     val instancesHost: String? = null,      // e.g. designer.172.x...sslip.io
     val appId: String? = null,              // e.g. henkan
 
-    val oAuth2ProxyImage: String? = null,
+    val oAuth2ProxyVersion: String? = null,
 
     val storageClassName: String? = null,   // e.g. local-path
     val requestedStorage: String? = null,   // e.g. 250Mi
