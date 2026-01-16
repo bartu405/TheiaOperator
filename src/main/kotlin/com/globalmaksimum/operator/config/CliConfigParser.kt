@@ -3,6 +3,7 @@ package com.globalmaksimum.operator.config
 
 object CliConfigParser {
     fun parse(args: Array<String>): OperatorConfig {
+
         fun get(flag: String): String? {
             val i = args.indexOf(flag)
             return if (i >= 0 && i + 1 < args.size) args[i + 1] else null
