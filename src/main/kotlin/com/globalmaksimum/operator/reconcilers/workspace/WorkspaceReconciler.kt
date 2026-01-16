@@ -66,24 +66,9 @@ class WorkspaceReconciler(
         if (resource.status == null) resource.status = WorkspaceStatus()
         val status = resource.status!!
 
-        // ============================================================
-        // SECTION 2: STATUS-BASED SHORT-CIRCUITING
-        // ============================================================
-
-        // Check if workspace is already handled or in error state
-        val opStatus = (status.operatorStatus ?: "NEW").uppercase()
-        when (opStatus) {
-            "HANDLED" -> return UpdateControl.noUpdate() // Already successfully processed, nothing to do
-            "HANDLING", "NEW" -> {
-                // Continue reconciliation normally
-            }
-            "ERROR" -> {
-                // Allow retry for self-healing (continue processing)
-            }
-        }
 
         // ============================================================
-        // SECTION 3: SPEC VALIDATION
+        // SECTION 2: SPEC VALIDATION
         // ============================================================
 
         // Validate that spec exists
@@ -116,7 +101,7 @@ class WorkspaceReconciler(
         }
 
         // ============================================================
-        // SECTION 4: METADATA & SPEC CHANGE TRACKING
+        // SECTION 3: METADATA & SPEC CHANGE TRACKING
         // ============================================================
 
         // Track whether we need to patch metadata/spec or just status
@@ -124,7 +109,7 @@ class WorkspaceReconciler(
         var specChanged = false
 
         // ============================================================
-        // SECTION 5: HENKAN LABELS MANAGEMENT
+        // SECTION 4: HENKAN LABELS MANAGEMENT
         // ============================================================
 
         val meta = resource.metadata!!
@@ -163,7 +148,7 @@ class WorkspaceReconciler(
         )
 
         // ============================================================
-        // SECTION 6: LINK TO APPDEFINITION (OWNER REFERENCE)
+        // SECTION 5: LINK TO APPDEFINITION (OWNER REFERENCE)
         // ============================================================
 
         val appDefName = spec.appDefinition
@@ -204,7 +189,7 @@ class WorkspaceReconciler(
         }
 
         // ============================================================
-        // SECTION 7: BEGIN PVC RECONCILIATION
+        // SECTION 6: BEGIN PVC RECONCILIATION
         // ============================================================
 
         // Mark workspace as being processed (HANDLING state)
@@ -219,7 +204,7 @@ class WorkspaceReconciler(
         if (pvcResult.storageUpdated) specChanged = true
 
         // ============================================================
-        // SECTION 8: HANDLE PVC STATUS
+        // SECTION 7: HANDLE PVC STATUS
         // ============================================================
 
         // Map internal PVC result to Henkan-style status fields
