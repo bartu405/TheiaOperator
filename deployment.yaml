@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-operator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-operator
+  template:
+    metadata:
+      labels:
+        app: my-operator
+    spec:
+      serviceAccountName: my-operator-sa
+      containers:
+        - name: operator
+          image: my-operator:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - --keycloakURL
+            - http://keycloak.keycloak.svc.cluster.local/auth/
+            - --keycloakRealm
+            - henkan
+            - --keycloakClientId
+            - henkan-designer
+            - --instancesHost
+            - theia.localtest.me
+            - --storageClassName
+            - local-path
+            - --requestedStorage
+            - 250Mi
