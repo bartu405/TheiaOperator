@@ -11,7 +11,7 @@ data:
     provider="keycloak-oidc"
     redirect_url="${redirectUrl}"
     oidc_issuer_url="${issuerUrl}"
-    ssl_insecure_skip_verify=true
+    ssl_insecure_skip_verify="true"
 
     # Client config
     client_id="henkan-designer"
