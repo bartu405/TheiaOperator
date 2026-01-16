@@ -229,13 +229,23 @@ class SessionReconciler(
         // SECTION 8: SET OWNER REFERENCE
         // ============================================================
 
-        val existingRefs = (meta.ownerReferences ?: emptyList()).toMutableList()
-        val newRefs = existingRefs
-            .filterNot { it.controller == true }
-            .toMutableList()
-        newRefs.add(OwnerRefs.controllerOwnerRef(workspace))
-        meta.ownerReferences = newRefs
-        metadataChanged = true
+        val currentRefs = meta.ownerReferences ?: emptyList()
+
+        val hasCorrectOwner = currentRefs.any {
+            it.controller == true &&
+                    it.kind == "Workspace" &&
+                    it.uid == workspace.metadata?.uid
+        }
+
+        if (!hasCorrectOwner) {
+            val newRefs = currentRefs
+                .filterNot { it.controller == true }
+                .toMutableList()
+            newRefs.add(OwnerRefs.controllerOwnerRef(workspace))
+            meta.ownerReferences = newRefs
+            metadataChanged = true
+        }
+
 
         // ============================================================
         // SECTION 9: VALIDATE APPDEFINITION CONSISTENCY
