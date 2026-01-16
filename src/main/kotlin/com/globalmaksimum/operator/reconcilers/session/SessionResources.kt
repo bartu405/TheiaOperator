@@ -63,14 +63,28 @@ class SessionResources(
         pvcName: String,
         appLabel: String,
     ) {
-        log.info(
-            "Ensuring Deployment {} in ns {} using PVC {}",
-            deploymentName, namespace, pvcName
-        )
+        log.info("Ensuring Deployment {} in ns {} using PVC {}", deploymentName, namespace, pvcName)
 
         // ============================================================
-        // SECTION 1: RENDER DEPLOYMENT YAML FROM TEMPLATE
+        // SECTION 1: CHECK IF DEPLOYMENT EXISTS
         // ============================================================
+
+        val existing = client.apps().deployments()
+            .inNamespace(namespace)
+            .withName(deploymentName)
+            .get()
+
+        if (existing != null) {
+            log.debug("Deployment {} already exists, skipping", deploymentName)
+            return
+        }
+
+
+        // ============================================================
+        // SECTION 2: CREATE DEPLOYMENT ONLY IF MISSING
+        // ============================================================
+
+        log.info("Creating Deployment {}", deploymentName)
 
         val yaml = TemplateRenderer.render(
             "templates/deployment.yaml.vm",
@@ -108,17 +122,15 @@ class SessionResources(
             )
         )
 
-        // ============================================================
-        // SECTION 2: LOAD AND APPLY
-        // ============================================================
-
         // Parse YAML into Kubernetes resources
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
             // Set Session as owner
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
-            client.resource(r).inNamespace(namespace).createOrReplace()
+            client.resource(r).inNamespace(namespace).create()
         }
+
+        log.info("Created Deployment {}", deploymentName)
     }
 
     fun ensureTheiaService(
@@ -133,8 +145,24 @@ class SessionResources(
     ) {
 
         // ============================================================
-        // SECTION 1: RENDER SERVICE YAML FROM TEMPLATE
+        // SECTION 1: CHECK IF SERVICE EXISTS
         // ============================================================
+
+        val existing = client.services()
+            .inNamespace(namespace)
+            .withName(serviceName)
+            .get()
+
+        if (existing != null) {
+            log.info("Service {} already exists in namespace {}", serviceName, namespace)
+            return
+        }
+
+        // ============================================================
+        // SECTION 2: CREATE SERVICE ONLY IF MISSING
+        // ============================================================
+
+        log.info("Creating Service {} in namespace {}", serviceName, namespace)
 
         val yaml = TemplateRenderer.render(
             "templates/service.yaml.vm",
@@ -151,19 +179,16 @@ class SessionResources(
             )
         )
 
-        // ============================================================
-        // SECTION 2: LOAD AND APPLY
-        // ============================================================
 
         // Parse YAML into Kubernetes resources
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
             // Set Session as owner for cascading deletion
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
-            client.resource(r).inNamespace(namespace).createOrReplace()
+            client.resource(r).inNamespace(namespace).create()
         }
 
-        log.info("Rendered Service YAML:\n{}", yaml)
+        log.info("Created Service:\n{}", serviceName)
     }
 
     fun ensureSessionProxyConfigMap(
@@ -177,22 +202,11 @@ class SessionResources(
     ): String {
 
         // ============================================================
-        // SECTION 1: CALCULATE OAUTH2 CONFIGURATION VALUES
+        // SECTION 1: CHECK IF CONFIGMAP EXISTS AND PRESERVE LABELS
         // ============================================================
-
-        val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
-        val host = config.instancesHost ?: "theia.localtest.me"
-        val scheme = config.ingressScheme.ifBlank { "http" }
-
-        val fullHost = "${host}/${sessionUid}"
-        val redirectUrl = "${scheme}://${fullHost}/oauth2/callback"
-        val upstreamUrl = "http://127.0.0.1:$port/"
 
         val cmName = SessionNaming.sessionProxyCmName(user, appDefName, sessionUid)
 
-        // ============================================================
-        // SECTION 2: PRESERVE EXISTING LABELS
-        // ============================================================
         val existingCm = client.configMaps()
             .inNamespace(namespace)
             .withName(cmName)
@@ -200,7 +214,6 @@ class SessionResources(
 
         val labels = existingCm?.metadata?.labels?.toMutableMap() ?: mutableMapOf()
 
-        // Add labels only if missing (don't override henkan-server's labels)
         fun putIfMissing(k: String, v: String?) {
             if (!v.isNullOrBlank() && !labels.containsKey(k)) {
                 labels[k] = v
@@ -214,9 +227,32 @@ class SessionResources(
         putIfMissing("theia-cloud.io/template-purpose", "proxy")
         putIfMissing("theia-cloud.io/user", user)
 
+        if (existingCm != null) {
+            log.info("ConfigMap {} already exists, merging labels", cmName)
+            existingCm.metadata.labels = labels
+            client.resource(existingCm).patch()
+            return cmName
+        }
+
+
+
         // ============================================================
-        // SECTION 3: RENDER CONFIGMAP YAML FROM TEMPLATE
+        // SECTION 3: CALCULATE OAUTH2 CONFIGURATION VALUES
         // ============================================================
+
+        val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
+        val host = config.instancesHost ?: "theia.localtest.me"
+        val scheme = config.ingressScheme.ifBlank { "http" }
+
+        val fullHost = "${host}/${sessionUid}"
+        val redirectUrl = "${scheme}://${fullHost}/oauth2/callback"
+        val upstreamUrl = "http://127.0.0.1:$port/"
+
+        // ============================================================
+        // SECTION 4: RENDER AND CREATE CONFIGMAP
+        // ============================================================
+
+        log.info("Creating ConfigMap {} in namespace {}", cmName, namespace)
 
         val model = mapOf(
             "configMapName" to cmName,
@@ -228,23 +264,16 @@ class SessionResources(
             "cookieDomain" to host,
         )
 
-        val yaml = TemplateRenderer.render(
-            "templates/oauth2-proxy-config.yaml.vm",
-            model
-        )
-
-        // ============================================================
-        // SECTION 4: LOAD AND APPLY
-        // ============================================================
+        val yaml = TemplateRenderer.render("templates/oauth2-proxy-config.yaml.vm", model)
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->
             r.metadata.ownerReferences = listOf(OwnerRefs.controllerOwnerRef(owner))
-            r.metadata.labels = labels  // Just use the merged labels directly
-            client.resource(r).inNamespace(namespace).createOrReplace()
+            r.metadata.labels = labels
+            client.resource(r).inNamespace(namespace).create()
         }
 
-        log.info("Ensured Session Proxy ConfigMap: {}", cmName)
+        log.info("Created ConfigMap {}", cmName)
         return cmName
     }
 
@@ -274,7 +303,6 @@ class SessionResources(
 
         val labels = existingCm?.metadata?.labels?.toMutableMap() ?: mutableMapOf()
 
-        // Add labels only if missing (don't override henkan-server's labels)
         fun putIfMissing(k: String, v: String?) {
             if (!v.isNullOrBlank() && !labels.containsKey(k)) {
                 labels[k] = v
@@ -287,6 +315,13 @@ class SessionResources(
         putIfMissing("theia-cloud.io/session", sessionName)
         putIfMissing("theia-cloud.io/user", user)
         putIfMissing("theia-cloud.io/template-purpose", "emails")
+
+        if (existingCm != null) {
+            existingCm.metadata.labels = labels
+            client.resource(existingCm).patch()
+            return name
+        }
+
 
         // ============================================================
         // SECTION 3: BUILD CONFIGMAP
@@ -307,7 +342,7 @@ class SessionResources(
         // SECTION 4: APPLY CONFIGMAP
         // ============================================================
 
-        client.configMaps().inNamespace(namespace).resource(cm).createOrReplace()
+        client.configMaps().inNamespace(namespace).resource(cm).create()
         return name
     }
 }
