@@ -7,9 +7,8 @@ object CliConfigParser {
             val i = args.indexOf(flag)
             return if (i >= 0 && i + 1 < args.size) args[i + 1] else null
         }
-        fun has(flag: String): Boolean = args.contains(flag)
 
-        val keycloakEnabled = has("--keycloak")
+        val keycloakEnabled = args.contains("--keycloak")
 
         val cfg = OperatorConfig(
             keycloakUrl = get("--keycloakURL") ?: System.getenv("THEIACLOUD_KEYCLOAK_URL"),
