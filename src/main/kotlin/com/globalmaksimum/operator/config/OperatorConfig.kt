@@ -18,5 +18,5 @@ data class OperatorConfig(
     val requestedStorage: String? = null,
 
     val sessionsPerUser: Int? = null,
-    val serviceUrl: String? = null, // Henkan had https://<nil> looks like a bug
+    val serviceUrl: String? = null,
 )
