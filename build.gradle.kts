@@ -12,16 +12,9 @@ repositories {
 }
 
 dependencies {
-    // Java Operator SDK
     implementation("io.javaoperatorsdk:operator-framework:5.1.4")
-
-    // Kubernetes client
     implementation("io.fabric8:kubernetes-client:7.3.1")
-
-    // Logging
     implementation("ch.qos.logback:logback-classic:1.5.6")
-
-    // Velocity Template
     implementation("org.apache.velocity:velocity-engine-core:2.3")
 }
 
@@ -39,12 +32,10 @@ tasks.shadowJar {
     }
 }
 
-
-
-
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(17)
 }

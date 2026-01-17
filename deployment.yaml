@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: operator-deployment
-  namespace: default  # Change to your namespace for production
+  namespace: default
   labels:
     app: operator
 spec:
@@ -29,30 +29,32 @@ spec:
           image: my-operator:1.0.0
           imagePullPolicy: IfNotPresent
           args:
+            - --keycloak
             - --keycloakURL
-            - http://192.168.19.248:8080/auth/
+            - http://192.168.1.103:8080/auth/
             - --keycloakRealm
             - henkan
             - --keycloakClientId
             - henkan-designer
             - --instancesHost
             - theia.localtest.me
+            - --appId
+            - henkan
             - --storageClassName
             - hostpath
             - --requestedStorage
             - 250Mi
+            - --oAuth2ProxyVersion
+            - quay.io/oauth2-proxy/oauth2-proxy:v7.5.1
           resources:
             requests:
               cpu: 200m
-              memory: 256Mi
+              memory: 512Mi
             limits:
               cpu: "1"
               memory: 512Mi
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-      # Uncomment when using a private registry (like henkan.azurecr.io)
-      # imagePullSecrets:
-      #   - name: regcred
       restartPolicy: Always
       dnsPolicy: ClusterFirst
       terminationGracePeriodSeconds: 30
