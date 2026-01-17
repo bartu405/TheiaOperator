@@ -28,4 +28,8 @@ RUN chown operator:operator /app/app.jar
 
 USER operator
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# JVM tuning for containers
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "/app/app.jar"]
