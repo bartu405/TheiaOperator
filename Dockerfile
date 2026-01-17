@@ -1,38 +1,30 @@
-# =========================
-# Build stage
-# =========================
-FROM gradle:8.5-jdk17 AS build
+# Stage 1: Build
+FROM eclipse-temurin:17-jdk-alpine AS builder
+WORKDIR /build
 
-WORKDIR /workspace
+# Copy Gradle wrapper and config first (layer caching)
+COPY gradle gradle
+COPY gradlew .
+COPY build.gradle.kts .
+COPY settings.gradle.kts .
 
-# Copy Gradle wrapper & build config first (for layer caching)
-COPY gradlew build.gradle.kts settings.gradle.kts ./
-COPY gradle ./gradle
+# Download dependencies (cached unless build files change)
+RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
 
-# Download dependencies (cached layer)
-RUN ./gradlew build -x test --no-daemon || true
+# Copy source and build
+COPY src src
+RUN ./gradlew shadowJar --no-daemon
 
-# Copy source code
-COPY src ./src
-
-# Build fat jar
-RUN ./gradlew build -x test --no-daemon
-
-
-
-# =========================
-# Runtime stage
-# =========================
+# Stage 2: Runtime
 FROM eclipse-temurin:17-jre-alpine
-
 WORKDIR /app
 
-# Copy the built JAR
-COPY --from=build /workspace/build/libs/*.jar app.jar
-
-# Create non-root user (best practice for operators)
 RUN addgroup -S operator && adduser -S operator -G operator
 
+# Use explicit filename since we know it's operator.jar
+COPY --from=builder /build/build/libs/operator.jar app.jar
+
+RUN chown operator:operator /app/app.jar
 USER operator
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

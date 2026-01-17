@@ -1,3 +1,4 @@
+# File: .dockerignore
 # Git
 .git
 .gitignore
@@ -5,6 +6,8 @@
 # Gradle
 .gradle
 build/
+!build/libs/
+!build/libs/*.jar
 
 # IntelliJ / IDEs
 .idea

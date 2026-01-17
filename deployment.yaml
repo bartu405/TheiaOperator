@@ -1,26 +1,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-operator
-  namespace: default
+  name: operator-deployment
+  namespace: default  # Change to your namespace for production
+  labels:
+    app: operator
 spec:
   replicas: 1
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: my-operator
+      app: operator
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
   template:
     metadata:
       labels:
-        app: my-operator
+        app: operator
     spec:
+      automountServiceAccountToken: true
+      serviceAccount: my-operator-sa
       serviceAccountName: my-operator-sa
       containers:
-        - name: operator
-          image: my-operator:latest
+        - name: operator-container
+          image: my-operator:1.0.0
           imagePullPolicy: IfNotPresent
           args:
             - --keycloakURL
-            - http://keycloak.keycloak.svc.cluster.local/auth/
+            - http://192.168.19.248:8080/auth/
             - --keycloakRealm
             - henkan
             - --keycloakClientId
@@ -28,6 +38,21 @@ spec:
             - --instancesHost
             - theia.localtest.me
             - --storageClassName
-            - local-path
+            - hostpath
             - --requestedStorage
             - 250Mi
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      # Uncomment when using a private registry (like henkan.azurecr.io)
+      # imagePullSecrets:
+      #   - name: regcred
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      terminationGracePeriodSeconds: 30

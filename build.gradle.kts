@@ -1,10 +1,11 @@
 plugins {
     kotlin("jvm") version "2.1.20"
     id("application")
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
+group = "com.globalmaksimum"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -22,14 +23,22 @@ dependencies {
 
     // Velocity Template
     implementation("org.apache.velocity:velocity-engine-core:2.3")
-
-
 }
 
-// Main setting for operator
 application {
     mainClass.set("com.globalmaksimum.operator.MainKt")
 }
+
+tasks.shadowJar {
+    archiveBaseName.set("operator")
+    archiveClassifier.set("")
+    archiveVersion.set("")
+    mergeServiceFiles()
+    manifest {
+        attributes["Main-Class"] = "com.globalmaksimum.operator.MainKt"
+    }
+}
+
 
 
 
