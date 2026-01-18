@@ -65,7 +65,7 @@ class SessionIngress(
         val rules = ingress.spec?.rules?.toMutableList() ?: mutableListOf()
 
         // Prefer a rule with http; do NOT hijack a host-only rule
-        var ruleIndex = rules.indexOfFirst { it.host == host && it.http != null }
+        val ruleIndex = rules.indexOfFirst { it.host == host && it.http != null }
 
         // CASE 1: NO HTTP RULE FOR THIS HOST YET
         if (ruleIndex == -1) {
