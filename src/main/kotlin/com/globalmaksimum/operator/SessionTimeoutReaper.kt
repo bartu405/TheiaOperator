@@ -13,7 +13,7 @@ class SessionTimeoutReaper(
 
     private val log = LoggerFactory.getLogger(SessionTimeoutReaper::class.java)
 
-    // single-threaded scheduler, like BasicTheiaCloudOperator
+    // single-threaded scheduler
     private val scheduler = Executors.newSingleThreadScheduledExecutor()
 
     fun start() {
@@ -51,7 +51,7 @@ class SessionTimeoutReaper(
         val now = Instant.now()
         log.debug("SessionTimeoutReaper tick at {}", now)
 
-        // list all sessions in all namespaces (or restrict to one if you prefer)
+        // list all sessions in all namespaces
         val sessions = client.resources(Session::class.java)
             .inAnyNamespace()
             .list()
