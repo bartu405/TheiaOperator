@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 /**
  * Helper class for managing Workspace-related Kubernetes resources.
  *
- * Primary responsibility: PersistentVolumeClaim (PVC) lifecycle management
+ * Primary responsibility: managing the PersistentVolumeClaim (PVC) lifecycle for a Workspace
  *
  * PVC Lifecycle Handled:
  * 1. Calculate PVC name from workspace metadata
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory
  * - "Deleting": PVC has deletionTimestamp (being terminated)
  * - "Pending": PVC exists but not yet Bound to a PersistentVolume
  * - "Bound": PVC is successfully attached to storage (ready to use)
- * - "Exists": Our internal state meaning PVC is Bound and ready
+ * - "Exists": Internal operator state meaning the PVC is Bound and ready for use
  * - "ERROR": Something went wrong
  */
 
@@ -75,7 +75,7 @@ class WorkspaceResources(
         }
 
         // ============================================================
-        // SECTION 3: SET SPEC.STORAGE (IN-MEMORY)
+        // SECTION 3: SET SPEC.STORAGE (IN-MEMORY ONLY; NOT PATCHED)
         // ============================================================
 
         val storageUpdated = (ws.spec?.storage != pvcName)

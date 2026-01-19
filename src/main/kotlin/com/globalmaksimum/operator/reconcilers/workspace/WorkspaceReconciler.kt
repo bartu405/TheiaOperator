@@ -59,7 +59,7 @@ class WorkspaceReconciler(
         log.info("Reconciling Workspace {}/{}", ns, name)
 
         // ============================================================
-        // SECTION 1: ENUSRE STATUS EXISTS
+        // SECTION 1: ENSURE STATUS EXISTS
         // ============================================================
 
         if (resource.status == null) resource.status = WorkspaceStatus()
@@ -254,7 +254,7 @@ class WorkspaceReconciler(
         }
 
         // ============================================================
-        // SECTION 9: FINAL UPDATE CONTROL
+        // SECTION 8: FINAL UPDATE CONTROL
         // ============================================================
 
         // One write to the primary resource:

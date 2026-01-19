@@ -15,15 +15,13 @@ import java.io.ByteArrayInputStream
  * Manages the creation and updates of Kubernetes resources for Sessions.
  *
  * Responsibilities:
- * 1. Create/update Deployments (main container + OAuth2 proxy sidecar)
- * 2. Create/update Services (ClusterIP for internal routing)
- * 3. Create/update ConfigMaps (OAuth2 proxy config, authenticated emails list)
- *
- * Key Design:
- * - Uses Velocity templates for all resource YAML generation
- * - All resources have owner references (Session owns them for cascading deletion)
- * - ConfigMaps preserve labels set by Henkan-server (only add if missing)
- * - OAuth2 proxy runs as sidecar in same pod as IDE/application
+ * 1. Create Deployments for sessions (main container + OAuth2 proxy sidecar)
+ *    - Deployments are created once and treated as immutable
+ * 2. Create Services (ClusterIP for internal routing)
+ *    - Services are created if missing
+ * 3. Create and update ConfigMaps
+ *    - OAuth2 proxy configuration
+ *    - Authenticated users list
  */
 class SessionResources(
     private val client: KubernetesClient,
@@ -81,6 +79,8 @@ class SessionResources(
 
         // ============================================================
         // SECTION 2: CREATE DEPLOYMENT ONLY IF MISSING
+        // NOTE: Deployments are intentionally treated as immutable once created.
+        // Any spec changes require session recreation.
         // ============================================================
 
         log.info("Creating Deployment {}", deploymentName)
@@ -236,7 +236,7 @@ class SessionResources(
 
 
         // ============================================================
-        // SECTION 3: CALCULATE OAUTH2 CONFIGURATION VALUES
+        // SECTION 2: CALCULATE OAUTH2 CONFIGURATION VALUES
         // ============================================================
 
         val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
@@ -248,7 +248,7 @@ class SessionResources(
         val upstreamUrl = "http://127.0.0.1:$port/"
 
         // ============================================================
-        // SECTION 4: RENDER AND CREATE CONFIGMAP
+        // SECTION 3: RENDER AND CREATE CONFIGMAP
         // ============================================================
 
         log.info("Creating ConfigMap {} in namespace {}", cmName, namespace)
@@ -326,7 +326,6 @@ class SessionResources(
         // SECTION 3: BUILD CONFIGMAP
         // ============================================================
 
-        // Store username (e.g., "bartu") not email
         val cm = ConfigMapBuilder()
             .withNewMetadata()
             .withName(name)
