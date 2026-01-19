@@ -1,4 +1,4 @@
-package com.globalmaksimum.operator
+package com.globalmaksimum.designeroperator
 
 import io.fabric8.kubernetes.api.model.Namespaced
 import io.fabric8.kubernetes.client.CustomResource

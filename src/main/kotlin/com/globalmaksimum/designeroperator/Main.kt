@@ -1,9 +1,9 @@
-package com.globalmaksimum.operator
+package com.globalmaksimum.designeroperator
 
-import com.globalmaksimum.operator.config.CliConfigParser
-import com.globalmaksimum.operator.reconcilers.appdefinition.AppDefinitionReconciler
-import com.globalmaksimum.operator.reconcilers.session.SessionReconciler
-import com.globalmaksimum.operator.reconcilers.workspace.WorkspaceReconciler
+import com.globalmaksimum.designeroperator.config.CliConfigParser
+import com.globalmaksimum.designeroperator.reconcilers.appdefinition.AppDefinitionReconciler
+import com.globalmaksimum.designeroperator.reconcilers.session.SessionReconciler
+import com.globalmaksimum.designeroperator.reconcilers.workspace.WorkspaceReconciler
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.javaoperatorsdk.operator.Operator
 import org.slf4j.LoggerFactory
@@ -23,7 +23,7 @@ fun main(args: Array<String>) {
             .withKubernetesClient(client)
             .withUseSSAToPatchPrimaryResource(false)
     }
-    
+
     operator.register(AppDefinitionReconciler(client))
     operator.register(WorkspaceReconciler(client, config))
     operator.register(SessionReconciler(client, config))

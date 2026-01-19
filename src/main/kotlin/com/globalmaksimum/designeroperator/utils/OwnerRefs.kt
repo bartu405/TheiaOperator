@@ -1,4 +1,4 @@
-package com.globalmaksimum.operator.utils
+package com.globalmaksimum.designeroperator.utils
 
 import io.fabric8.kubernetes.api.model.HasMetadata
 import io.fabric8.kubernetes.api.model.OwnerReference

@@ -1,8 +1,8 @@
-package com.globalmaksimum.operator.reconcilers.session
+package com.globalmaksimum.designeroperator.reconcilers.session
 
-import com.globalmaksimum.operator.AppDefinition
-import com.globalmaksimum.operator.Session
-import com.globalmaksimum.operator.config.OperatorConfig
+import com.globalmaksimum.designeroperator.AppDefinition
+import com.globalmaksimum.designeroperator.Session
+import com.globalmaksimum.designeroperator.config.OperatorConfig
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPathBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder

@@ -1,4 +1,4 @@
-package com.globalmaksimum.operator.config
+package com.globalmaksimum.designeroperator.config
 
 object CliConfigParser {
     fun parse(args: Array<String>): OperatorConfig {

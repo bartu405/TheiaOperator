@@ -1,10 +1,10 @@
-package com.globalmaksimum.operator.reconcilers.session
+package com.globalmaksimum.designeroperator.reconcilers.session
 
-import com.globalmaksimum.operator.Session
-import com.globalmaksimum.operator.config.OperatorConfig
-import com.globalmaksimum.operator.naming.SessionNaming
-import com.globalmaksimum.operator.utils.TemplateRenderer
-import com.globalmaksimum.operator.utils.OwnerRefs
+import com.globalmaksimum.designeroperator.Session
+import com.globalmaksimum.designeroperator.config.OperatorConfig
+import com.globalmaksimum.designeroperator.naming.SessionNaming
+import com.globalmaksimum.designeroperator.utils.TemplateRenderer
+import com.globalmaksimum.designeroperator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder
 import io.fabric8.kubernetes.api.model.EnvVar
 import io.fabric8.kubernetes.client.KubernetesClient

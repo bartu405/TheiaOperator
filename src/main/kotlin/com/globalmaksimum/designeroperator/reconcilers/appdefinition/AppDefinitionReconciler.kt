@@ -1,8 +1,8 @@
-package com.globalmaksimum.operator.reconcilers.appdefinition
+package com.globalmaksimum.designeroperator.reconcilers.appdefinition
 
-import com.globalmaksimum.operator.AppDefinition
-import com.globalmaksimum.operator.AppDefinitionStatus
-import com.globalmaksimum.operator.utils.OwnerRefs
+import com.globalmaksimum.designeroperator.AppDefinition
+import com.globalmaksimum.designeroperator.AppDefinitionStatus
+import com.globalmaksimum.designeroperator.utils.OwnerRefs
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.javaoperatorsdk.operator.api.reconciler.Context
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration

@@ -1,6 +1,6 @@
-package com.globalmaksimum.operator.naming
+package com.globalmaksimum.designeroperator.naming
 
-import com.globalmaksimum.operator.Workspace
+import com.globalmaksimum.designeroperator.Workspace
 import java.util.Locale
 
 object WorkspaceNaming {

@@ -1,4 +1,4 @@
-package com.globalmaksimum.operator.config
+package com.globalmaksimum.designeroperator.config
 
 data class OperatorConfig(
     val ingressHost: String = "theia.localtest.me",

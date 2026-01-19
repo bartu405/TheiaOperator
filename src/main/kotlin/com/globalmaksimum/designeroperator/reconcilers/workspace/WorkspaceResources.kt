@@ -1,11 +1,11 @@
-package com.globalmaksimum.operator.reconcilers.workspace
+package com.globalmaksimum.designeroperator.reconcilers.workspace
 
-import com.globalmaksimum.operator.VolumeStatus
-import com.globalmaksimum.operator.Workspace
-import com.globalmaksimum.operator.config.OperatorConfig
-import com.globalmaksimum.operator.naming.WorkspaceNaming
-import com.globalmaksimum.operator.utils.TemplateRenderer
-import com.globalmaksimum.operator.utils.OwnerRefs
+import com.globalmaksimum.designeroperator.VolumeStatus
+import com.globalmaksimum.designeroperator.Workspace
+import com.globalmaksimum.designeroperator.config.OperatorConfig
+import com.globalmaksimum.designeroperator.naming.WorkspaceNaming
+import com.globalmaksimum.designeroperator.utils.TemplateRenderer
+import com.globalmaksimum.designeroperator.utils.OwnerRefs
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim
 import io.fabric8.kubernetes.client.KubernetesClient
 import org.slf4j.LoggerFactory

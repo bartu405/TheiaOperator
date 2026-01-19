@@ -1,4 +1,4 @@
-package com.globalmaksimum.operator.naming
+package com.globalmaksimum.designeroperator.naming
 
 object SessionNaming {
 
