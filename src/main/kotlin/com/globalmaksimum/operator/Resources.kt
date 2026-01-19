@@ -82,7 +82,6 @@ class Workspace :
     Namespaced
 
 
-
 // ===== Session =====
 
 class SessionSpec {
