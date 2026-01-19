@@ -1,4 +1,3 @@
-// File: WorkspaceReconciler.kt
 package com.globalmaksimum.operator.reconcilers.workspace
 
 import com.globalmaksimum.operator.AppDefinition

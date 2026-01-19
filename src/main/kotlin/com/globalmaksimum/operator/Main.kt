@@ -1,4 +1,3 @@
-// File: Main.kt
 package com.globalmaksimum.operator
 
 import com.globalmaksimum.operator.config.CliConfigParser

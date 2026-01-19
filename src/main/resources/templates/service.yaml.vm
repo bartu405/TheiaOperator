@@ -1,4 +1,3 @@
-# FILE: service.yaml.vm
 apiVersion: v1
 kind: Service
 metadata:

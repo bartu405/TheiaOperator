@@ -1,4 +1,3 @@
-// File: TemplateRenderer.kt
 package com.globalmaksimum.operator.utils
 
 import org.apache.velocity.VelocityContext

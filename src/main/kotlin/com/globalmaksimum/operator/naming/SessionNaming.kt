@@ -1,4 +1,3 @@
-// File: SessionNaming.kt
 package com.globalmaksimum.operator.naming
 
 object SessionNaming {

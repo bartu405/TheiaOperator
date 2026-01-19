@@ -1,4 +1,3 @@
-// File: SessionTimeoutReaper.kt
 package com.globalmaksimum.operator
 
 import io.fabric8.kubernetes.client.KubernetesClient

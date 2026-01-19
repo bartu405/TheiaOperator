@@ -1,4 +1,3 @@
-// File: CliConfigParser.kt
 package com.globalmaksimum.operator.config
 
 // You pass the CLI arguments to this function, and this function maps them to the data class OperatorConfig an returns it

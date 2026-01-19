@@ -1,4 +1,3 @@
-// File: OperatorConfig.kt
 package com.globalmaksimum.operator.config
 
 data class OperatorConfig(

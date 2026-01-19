@@ -1,4 +1,3 @@
-// File: Labeling.kt
 package com.globalmaksimum.operator.naming
 
 import kotlin.text.iterator

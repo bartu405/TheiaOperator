@@ -1,4 +1,3 @@
-// File: Resources.kt
 package com.globalmaksimum.operator
 
 import io.fabric8.kubernetes.api.model.Namespaced

@@ -1,4 +1,3 @@
-// File: SessionReconciler.kt
 package com.globalmaksimum.operator.reconcilers.session
 
 import com.globalmaksimum.operator.AppDefinition

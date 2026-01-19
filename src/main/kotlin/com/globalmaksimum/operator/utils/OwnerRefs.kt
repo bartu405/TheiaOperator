@@ -1,4 +1,3 @@
-// File: OwnerRefs.kt
 package com.globalmaksimum.operator.utils
 
 import io.fabric8.kubernetes.api.model.HasMetadata

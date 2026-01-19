@@ -1,4 +1,3 @@
-// File: WorkspaceNaming.kt
 package com.globalmaksimum.operator.naming
 
 import com.globalmaksimum.operator.Workspace
