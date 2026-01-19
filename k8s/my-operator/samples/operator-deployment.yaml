@@ -22,8 +22,8 @@ spec:
         app: operator
     spec:
       automountServiceAccountToken: true
-      serviceAccount: my-operator-sa
-      serviceAccountName: my-operator-sa
+      serviceAccount: operator-api-service-account
+      serviceAccountName: operator-api-service-account
       containers:
         - name: operator-container
           image: my-operator:1.0.0
@@ -31,7 +31,7 @@ spec:
           args:
             - --keycloak
             - --keycloakURL
-            - http://192.168.1.103:8080/auth/
+            - http://192.168.19.247:8080/auth/
             - --keycloakRealm
             - henkan
             - --keycloakClientId
