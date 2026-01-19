@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
 
 # Copy Gradle wrapper and config first (layer caching)
@@ -16,7 +16,7 @@ COPY src src
 RUN ./gradlew shadowJar --no-daemon
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S operator && adduser -S operator -G operator
@@ -28,8 +28,6 @@ RUN chown operator:operator /app/app.jar
 
 USER operator
 
-# JVM tuning for containers
-ENTRYPOINT ["java", \
-  "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
-  "-jar", "/app/app.jar"]
+ENV USER_JVM_ARGS=""
+
+ENTRYPOINT ["sh", "-c", "java -XX:MaxRAMPercentage=75.0 $USER_JVM_ARGS -jar /app/app.jar"]
