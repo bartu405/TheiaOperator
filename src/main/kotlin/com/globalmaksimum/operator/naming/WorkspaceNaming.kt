@@ -38,7 +38,7 @@ object WorkspaceNaming {
         return text.take(max)
     }
 
-    // joins the segments
+    // Joins the segments
     private fun asValidNameSegments(vararg segments: String?): String {
         val joined = segments
             .filterNotNull()
@@ -48,7 +48,6 @@ object WorkspaceNaming {
         return asValidName(joined, VALID_NAME_LIMIT)
     }
 
-    // Mirrors NamingUtil.asValidName(String text, int limit), ensures kubernetes complience
     private fun asValidName(text: String, limit: Int): String {
         if (text.isEmpty()) return text
 
