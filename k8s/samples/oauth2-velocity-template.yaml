@@ -22,8 +22,8 @@ data:
         
         # Client config
         client_id="henkan-designer"
-        client_secret="ozX1h8tTCm6N54zFAvyUBF2c1nduIoZe"
-        cookie_secret="a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+        client_secret="YourClientSecret"
+        cookie_secret="YourCookieSecret"
         cookie_secure="false"
         
         # Upstream config (Theia app)
