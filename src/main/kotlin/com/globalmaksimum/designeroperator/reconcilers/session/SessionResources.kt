@@ -233,10 +233,28 @@ class SessionResources(
             return cmName
         }
 
+        // ============================================================
+        // SECTION 2: GET TEMPLATE FROM KUBERNETES CONFIGMAP
+        // ============================================================
 
+        val templateCm = client.configMaps()
+            .inNamespace(namespace)
+            .withName("oauth2-velocity-template")
+            .get()
+            ?: throw IllegalStateException(
+                "OAuth2 template ConfigMap 'oauth2-velocity-template' not found in namespace '$namespace'. " +
+                        "Please ensure it is installed via Helm before creating sessions."
+            )
+
+        val template = templateCm.data["oauth2-proxy.vm"]
+            ?: throw IllegalStateException(
+                "Template key 'oauth2-proxy.vm' not found in ConfigMap 'oauth2-velocity-template'"
+            )
+
+        log.debug("Loaded OAuth2 template from ConfigMap 'oauth2-velocity-template'")
 
         // ============================================================
-        // SECTION 2: CALCULATE OAUTH2 CONFIGURATION VALUES
+        // SECTION 3: CALCULATE OAUTH2 CONFIGURATION VALUES
         // ============================================================
 
         val issuerUrl = "${config.keycloakUrl}realms/${config.keycloakRealm}"
@@ -248,7 +266,7 @@ class SessionResources(
         val upstreamUrl = "http://127.0.0.1:$port/"
 
         // ============================================================
-        // SECTION 3: RENDER AND CREATE CONFIGMAP
+        // SECTION 4: RENDER AND CREATE CONFIGMAP
         // ============================================================
 
         log.info("Creating ConfigMap {} in namespace {}", cmName, namespace)
@@ -263,7 +281,7 @@ class SessionResources(
             "cookieDomain" to host,
         )
 
-        val yaml = TemplateRenderer.render("templates/oauth2-proxy-config.yaml.vm", model)
+        val yaml = TemplateRenderer.renderFromString(template, model)
 
         val resources = client.load(ByteArrayInputStream(yaml.toByteArray())).items()
         resources.forEach { r ->

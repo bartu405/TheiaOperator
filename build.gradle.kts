@@ -19,7 +19,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.globalmaksimum.operator.MainKt")
+    mainClass.set("com.globalmaksimum.designeroperator.MainKt")
 }
 
 tasks.shadowJar {
@@ -28,7 +28,7 @@ tasks.shadowJar {
     archiveVersion.set("")
     mergeServiceFiles()
     manifest {
-        attributes["Main-Class"] = "com.globalmaksimum.operator.MainKt"
+        attributes["Main-Class"] = "com.globalmaksimum.designeroperator.MainKt"
     }
 }
 
