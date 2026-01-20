@@ -260,6 +260,6 @@ https://theia.localtest.me/${SESSION_UID}/?rd=/${SESSION_UID}/
 
 ⚠️ The rd parameter is mandatory in local testing. In production, this parameter is automatically added by henkan-server.
 
-
+---
 
 Copyright © Global Maksimum
