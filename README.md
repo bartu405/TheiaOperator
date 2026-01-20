@@ -102,6 +102,39 @@ All runtime configuration is provided via CLI flags and parsed by `CliConfigPars
 
 ---
 
+
+## Assumptions
+
+The Designer Operator intentionally **does not create certain resources**.
+These are assumed to be **pre-installed**, typically via Helm.
+
+The operator will fail or wait indefinitely if they are missing.
+
+### Resources NOT created by the operator
+
+- **Shared Ingress**
+    - Must already exist in the namespace
+    - Usually created by Helm
+    - The operator only adds/removes session paths
+
+- **AppDefinition resources**
+    - Must already exist in the namespace
+    - Usually created by Helm
+    - The operator never generates AppDefinitions
+
+- **OAuth2 Velocity template ConfigMap**
+    - `oauth2-velocity-template`
+    - Must exist before creating Sessions
+    - Typically installed via Helm
+
+- **RBAC and ServiceAccounts**
+    - Required permissions are assumed to exist
+    - Sample manifests are provided under `k8s/samples/`
+
+This separation is intentional and keeps the operator focused on
+**reconciliation**, not **platform bootstrapping**.
+
+
 ## Runtime Context: Local vs Production
 
 ### Production (Henkan)
