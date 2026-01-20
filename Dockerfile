@@ -30,9 +30,5 @@ USER operator
 
 ENV USER_JVM_ARGS=""
 
-ENTRYPOINT [
-  "sh",
-  "-c",
-  "exec java -XX:MaxRAMPercentage=75.0 $USER_JVM_ARGS -jar /app/app.jar \"$@\"",
-  "java"
-]
+ENTRYPOINT ["sh","-c","exec java -XX:MaxRAMPercentage=75.0 $USER_JVM_ARGS -jar /app/app.jar \"$@\"","java"]
+
