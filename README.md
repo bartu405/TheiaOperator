@@ -175,6 +175,15 @@ kubectl apply -f k8s/samples/oauth2-templates.yaml
 kubectl apply -f k8s/samples/oauth2-velocity-template.yaml
 ```
 
+⚠️ **Security Notice – Required Change**
+
+The file `k8s/samples/oauth2-velocity-template.yaml` contains
+**dummy secrets** (`client_secret` and `cookie_secret`).
+Before applying this file, you **must replace these values** with
+secure, environment-specific secrets.
+
+
+
 #### 2. Run the operator locally
 
 ```bash

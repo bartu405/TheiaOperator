@@ -31,7 +31,7 @@ spec:
           args:
             - --keycloak
             - --keycloakURL
-            - http://192.168.1.103:8080/auth/
+            - http://192.168.19.244:8080/auth/
             - --keycloakRealm
             - henkan
             - --keycloakClientId
